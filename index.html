@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pickleball Scheduler</title>
+<style>
+  :root {
+    --green: #4a7c3f;
+    --green-dark: #3d6634;
+    --green-pale: #eaf7ec;
+    --green-pale-border: #c7e6cb;
+    --bg: #eef1f4;
+    --card-border: #d7dce2;
+    --text: #1f2937;
+    --muted: #6b7280;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    padding: 32px 16px 80px;
+  }
+  .app {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  h1 {
+    text-align: center;
+    color: var(--green);
+    font-size: 2rem;
+    margin: 8px 0 28px;
+  }
+  label.section-label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin: 18px 0 8px;
+  }
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    font-size: 1rem;
+    background: #fff;
+    color: var(--text);
+  }
+  input[type="text"]:focus, input[type="number"]:focus {
+    outline: 2px solid var(--green);
+    outline-offset: 1px;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff;
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    padding: 6px 8px 6px 14px;
+    font-size: 0.9rem;
+  }
+  .chip button {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 50%;
+  }
+  .chip button:hover { background: #f1f1f1; color: #c0392b; }
+
+  .dropdown { margin-top: 12px; }
+  .dropdown-toggle {
+    width: 100%;
+    text-align: left;
+    background: var(--green-pale);
+    border: 1px solid var(--green-pale-border);
+    color: var(--green-dark);
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 12px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .dropdown-toggle .arrow { transition: transform 0.15s ease; }
+  .dropdown.open .dropdown-toggle .arrow { transform: rotate(180deg); }
+  .dropdown-panel {
+    display: none;
+    background: #fff;
+    border: 1px solid var(--card-border);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    padding: 12px 14px;
+  }
+  .dropdown.open .dropdown-panel { display: block; }
+  .dropdown.open .dropdown-toggle { border-radius: 10px 10px 0 0; }
+
+  .saved-row, .session-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 4px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.92rem;
+  }
+  .saved-row:last-child, .session-row:last-child { border-bottom: none; }
+  .small-btn {
+    border: 1px solid var(--card-border);
+    background: #fff;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .small-btn.add { color: var(--green-dark); border-color: var(--green-pale-border); background: var(--green-pale); }
+  .small-btn.remove { color: #c0392b; }
+  .inline-form { display: flex; gap: 8px; margin-top: 10px; }
+  .inline-form input { flex: 1; }
+  .empty-note { color: var(--muted); font-size: 0.88rem; padding: 6px 4px; }
+
+  .config-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 10px;
+  }
+  .config-grid .field label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+  }
+  .config-grid .hint {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .courts-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    margin-top: 18px;
+  }
+  .court-field { display: flex; align-items: center; gap: 8px; }
+  .court-field span { font-weight: 700; color: var(--muted); }
+  .court-field input {
+    width: 60px;
+    text-align: center;
+    padding: 10px 6px;
+  }
+
+  .generate-btn {
+    width: 100%;
+    margin-top: 22px;
+    background: var(--green);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.05rem;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  .generate-btn:hover { background: var(--green-dark); }
+  .generate-btn:disabled { background: #a8c5a0; cursor: not-allowed; }
+
+  .debug-btn {
+    width: 100%;
+    margin-top: 12px;
+    background: transparent;
+    border: 1px dashed var(--card-border);
+    color: #9aa3ae;
+    padding: 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  .debug-btn:hover { color: var(--muted); border-color: #b6bcc4; }
+
+  .schedule {
+    margin-top: 30px;
+    background: #fff;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .schedule h2 { margin-top: 0; color: var(--green-dark); font-size: 1.3rem; }
+  .round-block { margin-bottom: 18px; }
+  .round-block h3 { margin: 0 0 8px; font-size: 1rem; color: var(--text); }
+  .court-line {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--green-pale);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 0.92rem;
+  }
+  .court-line .label { font-weight: 700; color: var(--green-dark); }
+  .sit-out { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+
+  .session-detail { margin-top: 8px; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <h1>Pickleball Scheduler</h1>
+
+    <label class="section-label">Today's players</label>
+    <input type="text" id="playerInput" placeholder="Type a name to add..." />
+    <div class="chips" id="todayChips"></div>
+
+    <div class="dropdown" id="pickDropdown">
+      <button class="dropdown-toggle" data-target="pickDropdown">
+        Pick from all saved players <span class="arrow">▾</span>
+      </button>
+      <div class="dropdown-panel" id="pickPanel"></div>
+    </div>
+
+    <div class="dropdown" id="manageDropdown">
+      <button class="dropdown-toggle" data-target="manageDropdown">
+        Manage saved names <span class="arrow">▾</span>
+      </button>
+      <div class="dropdown-panel">
+        <div id="managePanel"></div>
+        <div class="inline-form">
+          <input type="text" id="newSavedName" placeholder="Add a new saved name..." />
+          <button class="small-btn add" id="addSavedBtn">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dropdown" id="sessionsDropdown">
+      <button class="dropdown-toggle" data-target="sessionsDropdown">
+        Past sessions <span class="arrow">▾</span>
+      </button>
+      <div class="dropdown-panel" id="sessionsPanel"></div>
+    </div>
+
+    <div class="config-grid">
+      <div class="field">
+        <label for="courtsInput">Courts</label>
+        <input type="number" id="courtsInput" min="1" max="12" value="4" />
+      </div>
+      <div class="field">
+        <label for="gameLengthInput">Game length</label>
+        <input type="number" id="gameLengthInput" min="1" value="10" />
+        <div class="hint">mins</div>
+      </div>
+      <div class="field">
+        <label for="timeAvailableInput">Time available</label>
+        <input type="number" id="timeAvailableInput" min="1" value="120" />
+        <div class="hint" id="roundsHint">(12 rounds)</div>
+      </div>
+    </div>
+
+    <div class="courts-row" id="courtLabelsRow"></div>
+
+    <button class="generate-btn" id="generateBtn">Generate Schedule</button>
+    <button class="debug-btn" id="debugBtn">Debug: fill 15 names</button>
+
+    <div class="schedule" id="scheduleOutput" style="display:none;"></div>
+  </div>
+
+<script>
+(function () {
+  const STORAGE = {
+    saved: "pbs_savedPlayers",
+    sessions: "pbs_pastSessions",
+    today: "pbs_todayPlayers",
+    config: "pbs_config",
+  };
+
+  function load(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+  function save(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  let todayPlayers = load(STORAGE.today, []);
+  let savedPlayers = load(STORAGE.saved, []);
+  let pastSessions = load(STORAGE.sessions, []);
+  let config = load(STORAGE.config, {
+    courts: 4,
+    gameLength: 10,
+    timeAvailable: 120,
+    courtLabels: ["1", "2", "3", "4"],
+  });
+
+  const playerInput = document.getElementById("playerInput");
+  const todayChips = document.getElementById("todayChips");
+  const pickPanel = document.getElementById("pickPanel");
+  const managePanel = document.getElementById("managePanel");
+  const sessionsPanel = document.getElementById("sessionsPanel");
+  const courtsInput = document.getElementById("courtsInput");
+  const gameLengthInput = document.getElementById("gameLengthInput");
+  const timeAvailableInput = document.getElementById("timeAvailableInput");
+  const roundsHint = document.getElementById("roundsHint");
+  const courtLabelsRow = document.getElementById("courtLabelsRow");
+  const generateBtn = document.getElementById("generateBtn");
+  const debugBtn = document.getElementById("debugBtn");
+  const scheduleOutput = document.getElementById("scheduleOutput");
+  const newSavedName = document.getElementById("newSavedName");
+  const addSavedBtn = document.getElementById("addSavedBtn");
+
+  courtsInput.value = config.courts;
+  gameLengthInput.value = config.gameLength;
+  timeAvailableInput.value = config.timeAvailable;
+
+  function computeRounds() {
+    const len = Math.max(1, parseInt(gameLengthInput.value, 10) || 1);
+    const time = Math.max(1, parseInt(timeAvailableInput.value, 10) || 1);
+    return Math.max(1, Math.floor(time / len));
+  }
+
+  function updateRoundsHint() {
+    const rounds = computeRounds();
+    roundsHint.textContent = `(${rounds} round${rounds === 1 ? "" : "s"})`;
+  }
+
+  function persistConfig() {
+    config.courts = Math.max(1, parseInt(courtsInput.value, 10) || 1);
+    config.gameLength = Math.max(1, parseInt(gameLengthInput.value, 10) || 1);
+    config.timeAvailable = Math.max(1, parseInt(timeAvailableInput.value, 10) || 1);
+    save(STORAGE.config, config);
+  }
+
+  function renderCourtLabels() {
+    const n = Math.max(1, parseInt(courtsInput.value, 10) || 1);
+    const labels = config.courtLabels || [];
+    while (labels.length < n) labels.push(String(labels.length + 1));
+    labels.length = n;
+    config.courtLabels = labels;
+
+    courtLabelsRow.innerHTML = "";
+    labels.forEach((label, i) => {
+      const wrap = document.createElement("div");
+      wrap.className = "court-field";
+      const span = document.createElement("span");
+      span.textContent = "Court";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = label;
+      input.addEventListener("input", () => {
+        config.courtLabels[i] = input.value || String(i + 1);
+        save(STORAGE.config, config);
+      });
+      wrap.appendChild(span);
+      wrap.appendChild(input);
+      courtLabelsRow.appendChild(wrap);
+    });
+  }
+
+  function renderTodayChips() {
+    todayChips.innerHTML = "";
+    todayPlayers.forEach((name, i) => {
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      const span = document.createElement("span");
+      span.textContent = name;
+      const btn = document.createElement("button");
+      btn.textContent = "×";
+      btn.title = "Remove";
+      btn.addEventListener("click", () => {
+        todayPlayers.splice(i, 1);
+        save(STORAGE.today, todayPlayers);
+        renderTodayChips();
+        renderPickPanel();
+      });
+      chip.appendChild(span);
+      chip.appendChild(btn);
+      todayChips.appendChild(chip);
+    });
+  }
+
+  function addTodayPlayer(name) {
+    name = name.trim();
+    if (!name) return;
+    if (todayPlayers.some((p) => p.toLowerCase() === name.toLowerCase())) return;
+    todayPlayers.push(name);
+    save(STORAGE.today, todayPlayers);
+    renderTodayChips();
+    renderPickPanel();
+  }
+
+  playerInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      addTodayPlayer(playerInput.value);
+      playerInput.value = "";
+    }
+  });
+
+  function renderPickPanel() {
+    pickPanel.innerHTML = "";
+    const available = savedPlayers.filter(
+      (p) => !todayPlayers.some((t) => t.toLowerCase() === p.toLowerCase())
+    );
+    if (available.length === 0) {
+      const note = document.createElement("div");
+      note.className = "empty-note";
+      note.textContent = savedPlayers.length === 0
+        ? "No saved players yet. Add some in \"Manage saved names\"."
+        : "All saved players are already in today's list.";
+      pickPanel.appendChild(note);
+      return;
+    }
+    available.forEach((name) => {
+      const row = document.createElement("div");
+      row.className = "saved-row";
+      const span = document.createElement("span");
+      span.textContent = name;
+      const btn = document.createElement("button");
+      btn.className = "small-btn add";
+      btn.textContent = "Add";
+      btn.addEventListener("click", () => addTodayPlayer(name));
+      row.appendChild(span);
+      row.appendChild(btn);
+      pickPanel.appendChild(row);
+    });
+  }
+
+  function renderManagePanel() {
+    managePanel.innerHTML = "";
+    if (savedPlayers.length === 0) {
+      const note = document.createElement("div");
+      note.className = "empty-note";
+      note.textContent = "No saved names yet.";
+      managePanel.appendChild(note);
+      return;
+    }
+    savedPlayers.forEach((name, i) => {
+      const row = document.createElement("div");
+      row.className = "saved-row";
+      const span = document.createElement("span");
+      span.textContent = name;
+      const btn = document.createElement("button");
+      btn.className = "small-btn remove";
+      btn.textContent = "Remove";
+      btn.addEventListener("click", () => {
+        savedPlayers.splice(i, 1);
+        save(STORAGE.saved, savedPlayers);
+        renderManagePanel();
+        renderPickPanel();
+      });
+      row.appendChild(span);
+      row.appendChild(btn);
+      managePanel.appendChild(row);
+    });
+  }
+
+  addSavedBtn.addEventListener("click", () => {
+    const name = newSavedName.value.trim();
+    if (!name) return;
+    if (savedPlayers.some((p) => p.toLowerCase() === name.toLowerCase())) {
+      newSavedName.value = "";
+      return;
+    }
+    savedPlayers.push(name);
+    save(STORAGE.saved, savedPlayers);
+    newSavedName.value = "";
+    renderManagePanel();
+    renderPickPanel();
+  });
+  newSavedName.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") addSavedBtn.click();
+  });
+
+  function renderSessionsPanel() {
+    sessionsPanel.innerHTML = "";
+    if (pastSessions.length === 0) {
+      const note = document.createElement("div");
+      note.className = "empty-note";
+      note.textContent = "No past sessions yet.";
+      sessionsPanel.appendChild(note);
+      return;
+    }
+    [...pastSessions].reverse().forEach((session) => {
+      const row = document.createElement("div");
+      row.className = "session-row";
+      const span = document.createElement("span");
+      span.textContent = `${session.date} — ${session.players.length} players, ${session.rounds.length} rounds`;
+      const btnGroup = document.createElement("div");
+      btnGroup.style.display = "flex";
+      btnGroup.style.gap = "6px";
+      const viewBtn = document.createElement("button");
+      viewBtn.className = "small-btn";
+      viewBtn.textContent = "View";
+      viewBtn.addEventListener("click", () => {
+        renderSchedule(session.rounds, session.sitOutSummary);
+        window.scrollTo({ top: scheduleOutput.offsetTop - 20, behavior: "smooth" });
+      });
+      const delBtn = document.createElement("button");
+      delBtn.className = "small-btn remove";
+      delBtn.textContent = "Delete";
+      delBtn.addEventListener("click", () => {
+        pastSessions = pastSessions.filter((s) => s.id !== session.id);
+        save(STORAGE.sessions, pastSessions);
+        renderSessionsPanel();
+      });
+      btnGroup.appendChild(viewBtn);
+      btnGroup.appendChild(delBtn);
+      row.appendChild(span);
+      row.appendChild(btnGroup);
+      sessionsPanel.appendChild(row);
+    });
+  }
+
+  document.querySelectorAll(".dropdown-toggle").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const dropdown = document.getElementById(btn.dataset.target);
+      const isOpen = dropdown.classList.contains("open");
+      document.querySelectorAll(".dropdown.open").forEach((d) => d.classList.remove("open"));
+      if (!isOpen) dropdown.classList.add("open");
+    });
+  });
+
+  courtsInput.addEventListener("input", () => {
+    persistConfig();
+    renderCourtLabels();
+  });
+  gameLengthInput.addEventListener("input", () => {
+    persistConfig();
+    updateRoundsHint();
+  });
+  timeAvailableInput.addEventListener("input", () => {
+    persistConfig();
+    updateRoundsHint();
+  });
+
+  debugBtn.addEventListener("click", () => {
+    const sample = [
+      "Alex", "Bailey", "Casey", "Drew", "Elliot", "Frankie", "Gray", "Harper",
+      "Indi", "Jordan", "Kai", "Logan", "Morgan", "Nico", "Parker",
+    ];
+    sample.forEach(addTodayPlayer);
+  });
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function pairKey(a, b) {
+    return [a, b].sort().join("|");
+  }
+
+  function bestTeamSplit(group, partnerCount) {
+    const splits = [
+      { teamA: [group[0], group[1]], teamB: [group[2], group[3]] },
+      { teamA: [group[0], group[2]], teamB: [group[1], group[3]] },
+      { teamA: [group[0], group[3]], teamB: [group[1], group[2]] },
+    ];
+    let best = null;
+    let bestScore = Infinity;
+    for (const split of splits) {
+      const score =
+        (partnerCount[pairKey(split.teamA[0], split.teamA[1])] || 0) +
+        (partnerCount[pairKey(split.teamB[0], split.teamB[1])] || 0);
+      if (score < bestScore) {
+        bestScore = score;
+        best = split;
+      }
+    }
+    return { split: best, score: bestScore };
+  }
+
+  function generateRounds(players, numRounds, courtsCount, courtLabels) {
+    const partnerCount = {};
+    const sitCount = {};
+    players.forEach((p) => (sitCount[p] = 0));
+    const rounds = [];
+
+    for (let r = 0; r < numRounds; r++) {
+      const n = players.length;
+      const actualCourts = Math.min(courtsCount, Math.floor(n / 4));
+      if (actualCourts === 0) break;
+      const needed = actualCourts * 4;
+      const sitOutNeeded = n - needed;
+
+      const orderedBySit = [...players].sort((a, b) => {
+        const diff = sitCount[a] - sitCount[b];
+        return diff !== 0 ? diff : Math.random() - 0.5;
+      });
+      const sittingOut = orderedBySit.slice(0, sitOutNeeded);
+      const playing = orderedBySit.slice(sitOutNeeded);
+      sittingOut.forEach((p) => (sitCount[p] += 1));
+
+      let bestGrouping = null;
+      let bestScore = Infinity;
+      for (let attempt = 0; attempt < 150; attempt++) {
+        const shuffled = shuffle(playing);
+        const groups = [];
+        for (let i = 0; i < actualCourts; i++) {
+          groups.push(shuffled.slice(i * 4, i * 4 + 4));
+        }
+        const results = groups.map((g) => bestTeamSplit(g, partnerCount));
+        const totalScore = results.reduce((sum, res) => sum + res.score, 0);
+        if (totalScore < bestScore) {
+          bestScore = totalScore;
+          bestGrouping = results;
+        }
+        if (bestScore === 0) break;
+      }
+
+      bestGrouping.forEach((res) => {
+        const key1 = pairKey(res.split.teamA[0], res.split.teamA[1]);
+        const key2 = pairKey(res.split.teamB[0], res.split.teamB[1]);
+        partnerCount[key1] = (partnerCount[key1] || 0) + 1;
+        partnerCount[key2] = (partnerCount[key2] || 0) + 1;
+      });
+
+      const courts = bestGrouping.map((res, i) => ({
+        label: courtLabels[i] || String(i + 1),
+        teamA: res.split.teamA,
+        teamB: res.split.teamB,
+      }));
+
+      rounds.push({ round: r + 1, courts, sitOuts: sittingOut });
+    }
+
+    return rounds;
+  }
+
+  function renderSchedule(rounds, sitOutSummary) {
+    scheduleOutput.style.display = "block";
+    scheduleOutput.innerHTML = "";
+    const h2 = document.createElement("h2");
+    h2.textContent = "Schedule";
+    scheduleOutput.appendChild(h2);
+
+    rounds.forEach((round) => {
+      const block = document.createElement("div");
+      block.className = "round-block";
+      const h3 = document.createElement("h3");
+      h3.textContent = `Round ${round.round}`;
+      block.appendChild(h3);
+      round.courts.forEach((court) => {
+        const line = document.createElement("div");
+        line.className = "court-line";
+        const label = document.createElement("span");
+        label.className = "label";
+        label.textContent = `Court ${court.label}`;
+        const teams = document.createElement("span");
+        teams.textContent = `${court.teamA.join(" & ")}  vs  ${court.teamB.join(" & ")}`;
+        line.appendChild(label);
+        line.appendChild(teams);
+        block.appendChild(line);
+      });
+      if (round.sitOuts.length) {
+        const sit = document.createElement("div");
+        sit.className = "sit-out";
+        sit.textContent = `Sitting out: ${round.sitOuts.join(", ")}`;
+        block.appendChild(sit);
+      }
+      scheduleOutput.appendChild(block);
+    });
+  }
+
+  generateBtn.addEventListener("click", () => {
+    if (todayPlayers.length < 4) {
+      alert("Add at least 4 players to generate a schedule.");
+      return;
+    }
+    persistConfig();
+    const numRounds = computeRounds();
+    const rounds = generateRounds(todayPlayers, numRounds, config.courts, config.courtLabels);
+    if (rounds.length === 0) {
+      alert("Not enough players for even one court (need at least 4).");
+      return;
+    }
+    renderSchedule(rounds);
+
+    const sitOutSummary = {};
+    rounds.forEach((r) => r.sitOuts.forEach((p) => (sitOutSummary[p] = (sitOutSummary[p] || 0) + 1)));
+    pastSessions.push({
+      id: `${pastSessions.length}-${todayPlayers.join(",").length}-${rounds.length}`,
+      date: new Date().toLocaleString(),
+      players: todayPlayers.slice(),
+      rounds,
+      sitOutSummary,
+    });
+    save(STORAGE.sessions, pastSessions);
+    renderSessionsPanel();
+
+    window.scrollTo({ top: scheduleOutput.offsetTop - 20, behavior: "smooth" });
+  });
+
+  renderTodayChips();
+  renderPickPanel();
+  renderManagePanel();
+  renderSessionsPanel();
+  renderCourtLabels();
+  updateRoundsHint();
+})();
+</script>
+</body>
+</html>
