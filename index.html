@@ -14,6 +14,7 @@
     --card-border: #d7dce2;
     --text: #1f2937;
     --muted: #6b7280;
+    --dark-cell: #182a1e;
   }
   * { box-sizing: border-box; }
   body {
@@ -194,89 +195,310 @@
   }
   .debug-btn:hover { color: var(--muted); border-color: #b6bcc4; }
 
-  .schedule {
-    margin-top: 30px;
+  /* ---- Session (results) view ---- */
+  .session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .session-header h2 { margin: 0; color: var(--green-dark); font-size: 1.3rem; }
+  .session-links a {
+    color: var(--green);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-left: 14px;
+    cursor: pointer;
+  }
+  .session-links a:hover { text-decoration: underline; }
+
+  .info-bar {
+    background: var(--green-pale);
+    border: 1px solid var(--green-pale-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: var(--green-dark);
+    margin-bottom: 18px;
+    line-height: 1.4;
+  }
+
+  .timer-section { text-align: center; margin: 6px 0 24px; }
+  .timer-display { font-size: 3.2rem; font-weight: 800; color: var(--green-dark); line-height: 1; }
+  .timer-buttons { display: flex; justify-content: center; gap: 10px; margin-top: 12px; }
+  .timer-btn { padding: 10px 26px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.95rem; }
+  .timer-btn.start { background: var(--green); color: #fff; border: none; }
+  .timer-btn.reset { background: #fff; color: var(--text); border: 1px solid var(--card-border); }
+
+  .court-card {
+    border: 2px solid var(--green);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    background: #fff;
+  }
+  .court-title {
+    text-align: center;
+    text-transform: uppercase;
+    color: var(--green-dark);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+  }
+  .team-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 3px;
+    background: #dbe3dd;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .team-cell {
+    background: var(--dark-cell);
+    color: #fff;
+    font-weight: 700;
+    text-align: center;
+    padding: 14px 10px;
+    font-size: 0.98rem;
+  }
+  .score-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+    margin-top: 12px;
+  }
+  .score-row .label-left { text-align: left; color: var(--muted); font-size: 0.85rem; }
+  .score-row .label-right { text-align: right; color: var(--muted); font-size: 0.85rem; }
+  .score-inputs { display: flex; align-items: center; gap: 8px; justify-content: center; }
+  .score-inputs input {
+    width: 40px;
+    height: 36px;
+    text-align: center;
+    padding: 0;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+  }
+  .score-inputs .dash { color: var(--muted); }
+
+  .resting-bar {
+    background: #f5ecd9;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+  }
+  .resting-bar .label { font-weight: 700; color: #8a6d1f; }
+  .resting-pill {
+    background: #eddca0;
+    color: #7a5b12;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .nav-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .nav-btn { flex: 1; padding: 14px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; cursor: pointer; border: none; }
+  .nav-btn.prev { background: #dfe3e8; color: #9aa3ae; }
+  .nav-btn.prev:disabled { cursor: not-allowed; }
+  .nav-btn.next { background: var(--green); color: #fff; }
+  .nav-btn.next:disabled { background: #a8c5a0; cursor: not-allowed; }
+
+  .outline-btn {
+    width: 100%;
+    background: var(--green-pale);
+    border: 1px solid var(--green-pale-border);
+    color: var(--green-dark);
+    font-weight: 700;
+    padding: 12px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    text-align: center;
+    font-size: 0.95rem;
+  }
+
+  .panel {
     background: #fff;
     border: 1px solid var(--card-border);
     border-radius: 12px;
-    padding: 18px 20px;
+    overflow: hidden;
+    margin-top: 22px;
   }
-  .schedule h2 { margin-top: 0; color: var(--green-dark); font-size: 1.3rem; }
-  .round-block { margin-bottom: 18px; }
-  .round-block h3 { margin: 0 0 8px; font-size: 1rem; color: var(--text); }
-  .court-line {
+  .panel-header {
+    background: var(--green-dark);
+    color: #fff;
+    padding: 12px 18px;
     display: flex;
     justify-content: space-between;
-    padding: 8px 12px;
-    background: var(--green-pale);
-    border-radius: 8px;
-    margin-bottom: 6px;
-    font-size: 0.92rem;
+    align-items: center;
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    flex-wrap: wrap;
+    gap: 4px;
   }
-  .court-line .label { font-weight: 700; color: var(--green-dark); }
-  .sit-out { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+  .table-scroll { overflow-x: auto; }
+  table.schedule-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 480px; }
+  .schedule-table th {
+    background: #eef6ee;
+    color: var(--green-dark);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    padding: 10px 12px;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .schedule-table td { padding: 10px 12px; vertical-align: top; border-top: 1px solid #f0f0f0; }
+  .schedule-table tr:nth-child(even) td { background: #f7fbf7; }
+  .schedule-table .vs { text-align: center; color: var(--muted); font-size: 0.72rem; margin: 2px 0; }
+  .schedule-table .resting-cell { color: var(--green-dark); font-size: 0.8rem; }
 
-  .session-detail { margin-top: 8px; }
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 16px;
+  }
+  .game-pill {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--green-pale-border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+  .game-pill .name { font-weight: 700; }
+  .game-pill .count { background: var(--green); color: #fff; border-radius: 999px; padding: 2px 10px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+
+  @media (max-width: 480px) {
+    .config-grid { grid-template-columns: 1fr; }
+    .games-grid { grid-template-columns: 1fr; }
+  }
+
+  @media print {
+    .no-print { display: none !important; }
+  }
 </style>
 </head>
 <body>
   <div class="app">
     <h1>Pickleball Scheduler</h1>
 
-    <label class="section-label">Today's players</label>
-    <input type="text" id="playerInput" placeholder="Type a name to add..." />
-    <div class="chips" id="todayChips"></div>
+    <div id="setupView">
+      <label class="section-label">Today's players</label>
+      <input type="text" id="playerInput" placeholder="Type a name to add..." />
+      <div class="chips" id="todayChips"></div>
 
-    <div class="dropdown" id="pickDropdown">
-      <button class="dropdown-toggle" data-target="pickDropdown">
-        Pick from all saved players <span class="arrow">▾</span>
-      </button>
-      <div class="dropdown-panel" id="pickPanel"></div>
-    </div>
+      <div class="dropdown" id="pickDropdown">
+        <button class="dropdown-toggle" data-target="pickDropdown">
+          Pick from all saved players <span class="arrow">▾</span>
+        </button>
+        <div class="dropdown-panel" id="pickPanel"></div>
+      </div>
 
-    <div class="dropdown" id="manageDropdown">
-      <button class="dropdown-toggle" data-target="manageDropdown">
-        Manage saved names <span class="arrow">▾</span>
-      </button>
-      <div class="dropdown-panel">
-        <div id="managePanel"></div>
-        <div class="inline-form">
-          <input type="text" id="newSavedName" placeholder="Add a new saved name..." />
-          <button class="small-btn add" id="addSavedBtn">Add</button>
+      <div class="dropdown" id="manageDropdown">
+        <button class="dropdown-toggle" data-target="manageDropdown">
+          Manage saved names <span class="arrow">▾</span>
+        </button>
+        <div class="dropdown-panel">
+          <div id="managePanel"></div>
+          <div class="inline-form">
+            <input type="text" id="newSavedName" placeholder="Add a new saved name..." />
+            <button class="small-btn add" id="addSavedBtn">Add</button>
+          </div>
         </div>
       </div>
+
+      <div class="dropdown" id="sessionsDropdown">
+        <button class="dropdown-toggle" data-target="sessionsDropdown">
+          Past sessions <span class="arrow">▾</span>
+        </button>
+        <div class="dropdown-panel" id="sessionsPanel"></div>
+      </div>
+
+      <div class="config-grid">
+        <div class="field">
+          <label for="courtsInput">Courts</label>
+          <input type="number" id="courtsInput" min="1" max="12" value="4" />
+        </div>
+        <div class="field">
+          <label for="gameLengthInput">Game length</label>
+          <input type="number" id="gameLengthInput" min="1" value="10" />
+          <div class="hint">mins</div>
+        </div>
+        <div class="field">
+          <label for="timeAvailableInput">Time available</label>
+          <input type="number" id="timeAvailableInput" min="1" value="120" />
+          <div class="hint" id="roundsHint">(12 rounds)</div>
+        </div>
+      </div>
+
+      <div class="courts-row" id="courtLabelsRow"></div>
+
+      <button class="generate-btn" id="generateBtn">Generate Schedule</button>
+      <button class="debug-btn" id="debugBtn">Debug: fill 15 names</button>
     </div>
 
-    <div class="dropdown" id="sessionsDropdown">
-      <button class="dropdown-toggle" data-target="sessionsDropdown">
-        Past sessions <span class="arrow">▾</span>
-      </button>
-      <div class="dropdown-panel" id="sessionsPanel"></div>
+    <div id="sessionView" style="display:none;">
+      <div class="session-header">
+        <h2 id="roundHeader">Round 1 / 1</h2>
+        <div class="session-links">
+          <a id="editPlayersLink">Edit players</a>
+          <a id="startOverLink">Start Over</a>
+        </div>
+      </div>
+
+      <div class="info-bar" id="infoBar"></div>
+
+      <div class="timer-section no-print">
+        <div class="timer-display" id="timerDisplay">10:00</div>
+        <div class="timer-buttons">
+          <button class="timer-btn start" id="timerStartBtn">Start</button>
+          <button class="timer-btn reset" id="timerResetBtn">Reset</button>
+        </div>
+      </div>
+
+      <div id="courtsContainer"></div>
+
+      <div class="resting-bar" id="restingBar"></div>
+
+      <div class="nav-row no-print">
+        <button class="nav-btn prev" id="prevBtn">&larr; Prev</button>
+        <button class="nav-btn next" id="nextBtn">Next &rarr;</button>
+      </div>
+
+      <button class="outline-btn no-print" id="printBtn">Print / Save as PDF</button>
+      <button class="outline-btn no-print" id="regenerateBtn">Regenerate Schedule</button>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span>Full Schedule</span>
+          <span id="fullScheduleMeta"></span>
+        </div>
+        <div class="table-scroll">
+          <table class="schedule-table" id="fullScheduleTable"></table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><span>Games Played</span></div>
+        <div class="games-grid" id="gamesGrid"></div>
+      </div>
     </div>
-
-    <div class="config-grid">
-      <div class="field">
-        <label for="courtsInput">Courts</label>
-        <input type="number" id="courtsInput" min="1" max="12" value="4" />
-      </div>
-      <div class="field">
-        <label for="gameLengthInput">Game length</label>
-        <input type="number" id="gameLengthInput" min="1" value="10" />
-        <div class="hint">mins</div>
-      </div>
-      <div class="field">
-        <label for="timeAvailableInput">Time available</label>
-        <input type="number" id="timeAvailableInput" min="1" value="120" />
-        <div class="hint" id="roundsHint">(12 rounds)</div>
-      </div>
-    </div>
-
-    <div class="courts-row" id="courtLabelsRow"></div>
-
-    <button class="generate-btn" id="generateBtn">Generate Schedule</button>
-    <button class="debug-btn" id="debugBtn">Debug: fill 15 names</button>
-
-    <div class="schedule" id="scheduleOutput" style="display:none;"></div>
   </div>
 
 <script>
@@ -310,6 +532,14 @@
     courtLabels: ["1", "2", "3", "4"],
   });
 
+  let currentSession = null;
+  let currentRoundIndex = 0;
+  let timerSeconds = 0;
+  let timerInterval = null;
+
+  const setupView = document.getElementById("setupView");
+  const sessionView = document.getElementById("sessionView");
+
   const playerInput = document.getElementById("playerInput");
   const todayChips = document.getElementById("todayChips");
   const pickPanel = document.getElementById("pickPanel");
@@ -322,9 +552,25 @@
   const courtLabelsRow = document.getElementById("courtLabelsRow");
   const generateBtn = document.getElementById("generateBtn");
   const debugBtn = document.getElementById("debugBtn");
-  const scheduleOutput = document.getElementById("scheduleOutput");
   const newSavedName = document.getElementById("newSavedName");
   const addSavedBtn = document.getElementById("addSavedBtn");
+
+  const roundHeader = document.getElementById("roundHeader");
+  const editPlayersLink = document.getElementById("editPlayersLink");
+  const startOverLink = document.getElementById("startOverLink");
+  const infoBar = document.getElementById("infoBar");
+  const timerDisplay = document.getElementById("timerDisplay");
+  const timerStartBtn = document.getElementById("timerStartBtn");
+  const timerResetBtn = document.getElementById("timerResetBtn");
+  const courtsContainer = document.getElementById("courtsContainer");
+  const restingBar = document.getElementById("restingBar");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const printBtn = document.getElementById("printBtn");
+  const regenerateBtn = document.getElementById("regenerateBtn");
+  const fullScheduleMeta = document.getElementById("fullScheduleMeta");
+  const fullScheduleTable = document.getElementById("fullScheduleTable");
+  const gamesGrid = document.getElementById("gamesGrid");
 
   courtsInput.value = config.courts;
   gameLengthInput.value = config.gameLength;
@@ -509,8 +755,10 @@
       viewBtn.className = "small-btn";
       viewBtn.textContent = "View";
       viewBtn.addEventListener("click", () => {
-        renderSchedule(session.rounds, session.sitOutSummary);
-        window.scrollTo({ top: scheduleOutput.offsetTop - 20, behavior: "smooth" });
+        currentSession = session;
+        currentRoundIndex = 0;
+        showSessionView();
+        renderAll();
       });
       const delBtn = document.createElement("button");
       delBtn.className = "small-btn remove";
@@ -552,8 +800,8 @@
 
   debugBtn.addEventListener("click", () => {
     const sample = [
-      "Alex", "Bailey", "Casey", "Drew", "Elliot", "Frankie", "Gray", "Harper",
-      "Indi", "Jordan", "Kai", "Logan", "Morgan", "Nico", "Parker",
+      "Alice", "Bob", "Charlie", "Dave", "Eve", "Frank", "Grace", "Hank",
+      "Ivy", "Jack", "Kate", "Liam", "Mia", "Nick", "Olivia",
     ];
     sample.forEach(addTodayPlayer);
   });
@@ -593,13 +841,14 @@
 
   function generateRounds(players, numRounds, courtsCount, courtLabels) {
     const partnerCount = {};
+    const opponentCount = {};
     const sitCount = {};
     players.forEach((p) => (sitCount[p] = 0));
     const rounds = [];
+    const actualCourts = Math.min(courtsCount, Math.floor(players.length / 4));
 
     for (let r = 0; r < numRounds; r++) {
       const n = players.length;
-      const actualCourts = Math.min(courtsCount, Math.floor(n / 4));
       if (actualCourts === 0) break;
       const needed = actualCourts * 4;
       const sitOutNeeded = n - needed;
@@ -630,86 +879,306 @@
       }
 
       bestGrouping.forEach((res) => {
-        const key1 = pairKey(res.split.teamA[0], res.split.teamA[1]);
-        const key2 = pairKey(res.split.teamB[0], res.split.teamB[1]);
+        const { teamA, teamB } = res.split;
+        const key1 = pairKey(teamA[0], teamA[1]);
+        const key2 = pairKey(teamB[0], teamB[1]);
         partnerCount[key1] = (partnerCount[key1] || 0) + 1;
         partnerCount[key2] = (partnerCount[key2] || 0) + 1;
+        teamA.forEach((a) => {
+          teamB.forEach((b) => {
+            const k = pairKey(a, b);
+            opponentCount[k] = (opponentCount[k] || 0) + 1;
+          });
+        });
       });
 
       const courts = bestGrouping.map((res, i) => ({
         label: courtLabels[i] || String(i + 1),
         teamA: res.split.teamA,
         teamB: res.split.teamB,
+        scoreA: "",
+        scoreB: "",
       }));
 
       rounds.push({ round: r + 1, courts, sitOuts: sittingOut });
     }
 
-    return rounds;
+    const maxPartner = Object.values(partnerCount).reduce((m, v) => Math.max(m, v), 0);
+    const maxOpponent = Object.values(opponentCount).reduce((m, v) => Math.max(m, v), 0);
+
+    return { rounds, actualCourts, maxPartner, maxOpponent };
   }
 
-  function renderSchedule(rounds, sitOutSummary) {
-    scheduleOutput.style.display = "block";
-    scheduleOutput.innerHTML = "";
-    const h2 = document.createElement("h2");
-    h2.textContent = "Schedule";
-    scheduleOutput.appendChild(h2);
+  function showSetupView() {
+    stopTimer();
+    setupView.style.display = "block";
+    sessionView.style.display = "none";
+  }
+  function showSessionView() {
+    setupView.style.display = "none";
+    sessionView.style.display = "block";
+  }
 
-    rounds.forEach((round) => {
-      const block = document.createElement("div");
-      block.className = "round-block";
-      const h3 = document.createElement("h3");
-      h3.textContent = `Round ${round.round}`;
-      block.appendChild(h3);
-      round.courts.forEach((court) => {
-        const line = document.createElement("div");
-        line.className = "court-line";
-        const label = document.createElement("span");
-        label.className = "label";
-        label.textContent = `Court ${court.label}`;
-        const teams = document.createElement("span");
-        teams.textContent = `${court.teamA.join(" & ")}  vs  ${court.teamB.join(" & ")}`;
-        line.appendChild(label);
-        line.appendChild(teams);
-        block.appendChild(line);
-      });
-      if (round.sitOuts.length) {
-        const sit = document.createElement("div");
-        sit.className = "sit-out";
-        sit.textContent = `Sitting out: ${round.sitOuts.join(", ")}`;
-        block.appendChild(sit);
+  function stopTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    timerStartBtn.textContent = "Start";
+  }
+
+  function resetTimer() {
+    stopTimer();
+    timerSeconds = (currentSession ? currentSession.config.gameLength : 10) * 60;
+    updateTimerDisplay();
+  }
+
+  function updateTimerDisplay() {
+    const m = Math.floor(timerSeconds / 60);
+    const s = timerSeconds % 60;
+    timerDisplay.textContent = `${m}:${String(s).padStart(2, "0")}`;
+  }
+
+  timerStartBtn.addEventListener("click", () => {
+    if (timerInterval) {
+      stopTimer();
+      return;
+    }
+    timerStartBtn.textContent = "Pause";
+    timerInterval = setInterval(() => {
+      if (timerSeconds <= 0) {
+        stopTimer();
+        return;
       }
-      scheduleOutput.appendChild(block);
+      timerSeconds -= 1;
+      updateTimerDisplay();
+    }, 1000);
+  });
+  timerResetBtn.addEventListener("click", resetTimer);
+
+  function updateSessionInStorage() {
+    const idx = pastSessions.findIndex((s) => s.id === currentSession.id);
+    if (idx !== -1) {
+      pastSessions[idx] = currentSession;
+      save(STORAGE.sessions, pastSessions);
+    }
+  }
+
+  function renderInfoBar() {
+    const s = currentSession;
+    const avgActive = ((s.rounds.length * s.actualCourts * 4) / s.players.length).toFixed(1);
+    infoBar.textContent =
+      `${s.players.length} players · ${s.actualCourts} courts · ${s.config.gameLength} min games · ` +
+      `${s.rounds.length} rounds · ~${avgActive} active each · ` +
+      `Max repeat partner: ${s.maxPartner} · Max repeat opponent: ${s.maxOpponent}`;
+  }
+
+  function renderRound() {
+    const s = currentSession;
+    const round = s.rounds[currentRoundIndex];
+    roundHeader.textContent = `Round ${currentRoundIndex + 1} / ${s.rounds.length}`;
+
+    courtsContainer.innerHTML = "";
+    round.courts.forEach((court) => {
+      const card = document.createElement("div");
+      card.className = "court-card";
+
+      const title = document.createElement("div");
+      title.className = "court-title";
+      title.textContent = `Court ${court.label}`;
+      card.appendChild(title);
+
+      const teamBox = document.createElement("div");
+      teamBox.className = "team-box";
+      [court.teamA[0], court.teamB[0], court.teamA[1], court.teamB[1]].forEach((name) => {
+        const cell = document.createElement("div");
+        cell.className = "team-cell";
+        cell.textContent = name;
+        teamBox.appendChild(cell);
+      });
+      card.appendChild(teamBox);
+
+      const scoreRow = document.createElement("div");
+      scoreRow.className = "score-row";
+      const labelLeft = document.createElement("div");
+      labelLeft.className = "label-left";
+      labelLeft.textContent = court.teamA.join(" & ");
+      const inputs = document.createElement("div");
+      inputs.className = "score-inputs";
+      const scoreA = document.createElement("input");
+      scoreA.type = "number";
+      scoreA.value = court.scoreA;
+      scoreA.addEventListener("input", () => {
+        court.scoreA = scoreA.value;
+        updateSessionInStorage();
+      });
+      const dash = document.createElement("span");
+      dash.className = "dash";
+      dash.textContent = "—";
+      const scoreB = document.createElement("input");
+      scoreB.type = "number";
+      scoreB.value = court.scoreB;
+      scoreB.addEventListener("input", () => {
+        court.scoreB = scoreB.value;
+        updateSessionInStorage();
+      });
+      inputs.appendChild(scoreA);
+      inputs.appendChild(dash);
+      inputs.appendChild(scoreB);
+      const labelRight = document.createElement("div");
+      labelRight.className = "label-right";
+      labelRight.textContent = court.teamB.join(" & ");
+      scoreRow.appendChild(labelLeft);
+      scoreRow.appendChild(inputs);
+      scoreRow.appendChild(labelRight);
+      card.appendChild(scoreRow);
+
+      courtsContainer.appendChild(card);
+    });
+
+    restingBar.innerHTML = "";
+    if (round.sitOuts.length) {
+      const label = document.createElement("span");
+      label.className = "label";
+      label.textContent = "Resting:";
+      restingBar.appendChild(label);
+      round.sitOuts.forEach((name) => {
+        const pill = document.createElement("span");
+        pill.className = "resting-pill";
+        pill.textContent = name;
+        restingBar.appendChild(pill);
+      });
+      restingBar.style.display = "flex";
+    } else {
+      restingBar.style.display = "none";
+    }
+
+    prevBtn.disabled = currentRoundIndex === 0;
+    nextBtn.disabled = currentRoundIndex === s.rounds.length - 1;
+
+    resetTimer();
+  }
+
+  function renderFullSchedule() {
+    const s = currentSession;
+    fullScheduleMeta.textContent = `${s.players.length} PLAYERS · ${s.actualCourts} COURTS`;
+    let html = "<thead><tr><th>#</th>";
+    for (let i = 0; i < s.actualCourts; i++) {
+      html += `<th>Court ${s.config.courtLabels[i] || i + 1}</th>`;
+    }
+    html += "<th>Resting</th></tr></thead><tbody>";
+    s.rounds.forEach((round) => {
+      html += `<tr><td>${round.round}</td>`;
+      round.courts.forEach((court) => {
+        html += `<td>${court.teamA.join(" & ")}<div class="vs">vs</div>${court.teamB.join(" & ")}</td>`;
+      });
+      html += `<td class="resting-cell">${round.sitOuts.join(", ")}</td></tr>`;
+    });
+    html += "</tbody>";
+    fullScheduleTable.innerHTML = html;
+  }
+
+  function renderGamesPlayed() {
+    const s = currentSession;
+    const gamesCount = {};
+    s.players.forEach((p) => (gamesCount[p] = 0));
+    s.rounds.forEach((round) => {
+      round.courts.forEach((court) => {
+        [...court.teamA, ...court.teamB].forEach((p) => (gamesCount[p] += 1));
+      });
+    });
+    const sortedNames = [...s.players].sort((a, b) => a.localeCompare(b));
+    gamesGrid.innerHTML = "";
+    sortedNames.forEach((name) => {
+      const pill = document.createElement("div");
+      pill.className = "game-pill";
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "name";
+      nameSpan.textContent = name;
+      const count = document.createElement("span");
+      count.className = "count";
+      count.textContent = `${gamesCount[name]} games`;
+      pill.appendChild(nameSpan);
+      pill.appendChild(count);
+      gamesGrid.appendChild(pill);
     });
   }
 
-  generateBtn.addEventListener("click", () => {
+  function renderAll() {
+    renderInfoBar();
+    renderRound();
+    renderFullSchedule();
+    renderGamesPlayed();
+  }
+
+  prevBtn.addEventListener("click", () => {
+    if (currentRoundIndex > 0) {
+      currentRoundIndex -= 1;
+      renderRound();
+    }
+  });
+  nextBtn.addEventListener("click", () => {
+    if (currentRoundIndex < currentSession.rounds.length - 1) {
+      currentRoundIndex += 1;
+      renderRound();
+    }
+  });
+
+  printBtn.addEventListener("click", () => window.print());
+
+  editPlayersLink.addEventListener("click", showSetupView);
+
+  startOverLink.addEventListener("click", () => {
+    if (!confirm("Start over? This clears today's players list.")) return;
+    todayPlayers = [];
+    save(STORAGE.today, todayPlayers);
+    currentSession = null;
+    renderTodayChips();
+    renderPickPanel();
+    showSetupView();
+  });
+
+  function buildAndShowSession() {
     if (todayPlayers.length < 4) {
       alert("Add at least 4 players to generate a schedule.");
-      return;
+      return false;
     }
     persistConfig();
     const numRounds = computeRounds();
-    const rounds = generateRounds(todayPlayers, numRounds, config.courts, config.courtLabels);
+    const { rounds, actualCourts, maxPartner, maxOpponent } = generateRounds(
+      todayPlayers, numRounds, config.courts, config.courtLabels
+    );
     if (rounds.length === 0) {
       alert("Not enough players for even one court (need at least 4).");
-      return;
+      return false;
     }
-    renderSchedule(rounds);
-
-    const sitOutSummary = {};
-    rounds.forEach((r) => r.sitOuts.forEach((p) => (sitOutSummary[p] = (sitOutSummary[p] || 0) + 1)));
-    pastSessions.push({
-      id: `${pastSessions.length}-${todayPlayers.join(",").length}-${rounds.length}`,
+    currentSession = {
+      id: `${pastSessions.length}-${todayPlayers.length}-${rounds.length}-${Math.random().toString(36).slice(2, 8)}`,
       date: new Date().toLocaleString(),
       players: todayPlayers.slice(),
+      config: { ...config, courtLabels: config.courtLabels.slice() },
+      actualCourts,
+      maxPartner,
+      maxOpponent,
       rounds,
-      sitOutSummary,
-    });
+    };
+    currentRoundIndex = 0;
+    pastSessions.push(currentSession);
     save(STORAGE.sessions, pastSessions);
     renderSessionsPanel();
+    showSessionView();
+    renderAll();
+    return true;
+  }
 
-    window.scrollTo({ top: scheduleOutput.offsetTop - 20, behavior: "smooth" });
+  generateBtn.addEventListener("click", buildAndShowSession);
+
+  regenerateBtn.addEventListener("click", () => {
+    const prevPlayers = todayPlayers;
+    todayPlayers = currentSession.players.slice();
+    config = { ...currentSession.config, courtLabels: currentSession.config.courtLabels.slice() };
+    buildAndShowSession();
+    todayPlayers = prevPlayers;
   });
 
   renderTodayChips();
