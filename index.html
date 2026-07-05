@@ -843,7 +843,11 @@
     const partnerCount = {};
     const opponentCount = {};
     const sitCount = {};
-    players.forEach((p) => (sitCount[p] = 0));
+    const lastRestRound = {};
+    players.forEach((p) => {
+      sitCount[p] = 0;
+      lastRestRound[p] = -1;
+    });
     const rounds = [];
     const actualCourts = Math.min(courtsCount, Math.floor(players.length / 4));
 
@@ -853,13 +857,19 @@
       const needed = actualCourts * 4;
       const sitOutNeeded = n - needed;
 
+      const tiebreak = {};
+      players.forEach((p) => (tiebreak[p] = Math.random()));
       const orderedBySit = [...players].sort((a, b) => {
-        const diff = sitCount[a] - sitCount[b];
-        return diff !== 0 ? diff : Math.random() - 0.5;
+        if (sitCount[a] !== sitCount[b]) return sitCount[a] - sitCount[b];
+        if (lastRestRound[a] !== lastRestRound[b]) return lastRestRound[a] - lastRestRound[b];
+        return tiebreak[a] - tiebreak[b];
       });
       const sittingOut = orderedBySit.slice(0, sitOutNeeded);
       const playing = orderedBySit.slice(sitOutNeeded);
-      sittingOut.forEach((p) => (sitCount[p] += 1));
+      sittingOut.forEach((p) => {
+        sitCount[p] += 1;
+        lastRestRound[p] = r;
+      });
 
       let bestGrouping = null;
       let bestScore = Infinity;
