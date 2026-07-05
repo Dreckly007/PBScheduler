@@ -539,6 +539,7 @@
   let todayPlayers = load(STORAGE.today, []);
   let savedPlayers = load(STORAGE.saved, []);
   let pastSessions = load(STORAGE.sessions, []);
+  const CONFIG_SCHEMA_VERSION = 2;
   let config = load(STORAGE.config, {
     courts: 1,
     gamesToPlay: 0,
@@ -546,9 +547,20 @@
     timeAvailable: 0,
     targetScore: 11,
     courtLabels: ["1"],
+    schemaVersion: CONFIG_SCHEMA_VERSION,
   });
   config.gamesToPlay = config.gamesToPlay ?? 0;
   config.targetScore = config.targetScore ?? 11;
+  if ((config.schemaVersion || 1) < CONFIG_SCHEMA_VERSION) {
+    // One-time migration: browsers with settings saved before the
+    // "games to play" mode existed get bumped onto the new defaults.
+    config.courts = 1;
+    config.gameLength = 0;
+    config.timeAvailable = 0;
+    config.courtLabels = ["1"];
+    config.schemaVersion = CONFIG_SCHEMA_VERSION;
+    save(STORAGE.config, config);
+  }
 
   let currentSession = null;
   let currentRoundIndex = 0;
