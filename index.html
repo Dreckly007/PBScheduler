@@ -6,15 +6,15 @@
 <title>Pickleball Scheduler</title>
 <style>
   :root {
-    --green: #4a7c3f;
-    --green-dark: #3d6634;
-    --green-pale: #eaf7ec;
-    --green-pale-border: #c7e6cb;
+    --green: #b8860b;
+    --green-dark: #8b6508;
+    --green-pale: #fbf3dc;
+    --green-pale-border: #e3cd8e;
     --bg: #eef1f4;
     --card-border: #d7dce2;
     --text: #1f2937;
     --muted: #6b7280;
-    --dark-cell: #182a1e;
+    --dark-cell: #241c10;
   }
   * { box-sizing: border-box; }
   body {
@@ -180,7 +180,7 @@
     cursor: pointer;
   }
   .generate-btn:hover { background: var(--green-dark); }
-  .generate-btn:disabled { background: #a8c5a0; cursor: not-allowed; }
+  .generate-btn:disabled { background: #d9c79a; cursor: not-allowed; }
 
   .debug-btn {
     width: 100%;
@@ -254,7 +254,7 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto;
     gap: 3px;
-    background: #dbe3dd;
+    background: #e4d9bc;
     border-radius: 10px;
     overflow: hidden;
   }
@@ -313,7 +313,7 @@
   .nav-btn.prev { background: #dfe3e8; color: #9aa3ae; }
   .nav-btn.prev:disabled { cursor: not-allowed; }
   .nav-btn.next { background: var(--green); color: #fff; }
-  .nav-btn.next:disabled { background: #a8c5a0; cursor: not-allowed; }
+  .nav-btn.next:disabled { background: #d9c79a; cursor: not-allowed; }
 
   .outline-btn {
     width: 100%;
@@ -353,7 +353,7 @@
   .table-scroll { overflow-x: auto; }
   table.schedule-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 480px; }
   .schedule-table th {
-    background: #eef6ee;
+    background: #faf2dc;
     color: var(--green-dark);
     text-transform: uppercase;
     font-size: 0.72rem;
@@ -362,7 +362,7 @@
     white-space: nowrap;
   }
   .schedule-table td { padding: 10px 12px; vertical-align: top; border-top: 1px solid #f0f0f0; }
-  .schedule-table tr:nth-child(even) td { background: #f7fbf7; }
+  .schedule-table tr:nth-child(even) td { background: #fdf9ef; }
   .schedule-table .vs { text-align: center; color: var(--muted); font-size: 0.72rem; margin: 2px 0; }
   .schedule-table .resting-cell { color: var(--green-dark); font-size: 0.8rem; }
 
