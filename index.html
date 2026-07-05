@@ -151,17 +151,26 @@
     color: var(--muted);
     margin-top: 4px;
   }
+  .estimate-field { margin-top: 14px; }
   .estimate-box {
-    margin-top: 8px;
     background: #fff;
     border: 1px solid var(--card-border);
     border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 0.85rem;
-    color: var(--text);
-    line-height: 1.4;
+    padding: 12px 16px;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
   }
-  .estimate-box:empty { display: none; }
+  .estimate-number {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .estimate-reason {
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
   #targetScoreField { margin-top: 14px; }
   #targetScoreField input { max-width: 140px; }
 
@@ -463,12 +472,25 @@
         </div>
       </div>
 
-      <div class="estimate-box" id="roundsHint"></div>
+      <div class="field estimate-field" id="roundsEstimateField" style="display:none;">
+        <label>Estimated games to play</label>
+        <div class="estimate-box">
+          <span class="estimate-number" id="roundsEstimateNumber"></span>
+          <span class="estimate-reason" id="roundsEstimateReason"></span>
+        </div>
+      </div>
 
       <div class="field" id="targetScoreField" style="display:none;">
         <label for="targetScoreInput">Games to be played to</label>
         <input type="number" id="targetScoreInput" min="1" max="21" value="11" />
-        <div class="estimate-box" id="targetScoreHint"></div>
+      </div>
+
+      <div class="field estimate-field" id="targetScoreEstimateField" style="display:none;">
+        <label>Estimated game time needed</label>
+        <div class="estimate-box">
+          <span class="estimate-number" id="targetScoreEstimateNumber"></span>
+          <span class="estimate-reason" id="targetScoreEstimateReason"></span>
+        </div>
       </div>
 
       <div class="courts-row" id="courtLabelsRow"></div>
@@ -591,10 +613,14 @@
   const gamesToPlayInput = document.getElementById("gamesToPlayInput");
   const gameLengthInput = document.getElementById("gameLengthInput");
   const timeAvailableInput = document.getElementById("timeAvailableInput");
-  const roundsHint = document.getElementById("roundsHint");
+  const roundsEstimateField = document.getElementById("roundsEstimateField");
+  const roundsEstimateNumber = document.getElementById("roundsEstimateNumber");
+  const roundsEstimateReason = document.getElementById("roundsEstimateReason");
   const targetScoreField = document.getElementById("targetScoreField");
   const targetScoreInput = document.getElementById("targetScoreInput");
-  const targetScoreHint = document.getElementById("targetScoreHint");
+  const targetScoreEstimateField = document.getElementById("targetScoreEstimateField");
+  const targetScoreEstimateNumber = document.getElementById("targetScoreEstimateNumber");
+  const targetScoreEstimateReason = document.getElementById("targetScoreEstimateReason");
   const courtLabelsRow = document.getElementById("courtLabelsRow");
   const generateBtn = document.getElementById("generateBtn");
   const debugBtn = document.getElementById("debugBtn");
@@ -667,27 +693,33 @@
 
   function updateRoundsHint() {
     if (isGamesMode()) {
-      roundsHint.textContent = "";
+      roundsEstimateField.style.display = "none";
       return;
     }
     const rounds = computeRounds();
-    roundsHint.textContent = rounds > 0
-      ? `${rounds} round${rounds === 1 ? "" : "s"} total, incl. ${CHANGEOVER_MINUTES} min changeover per game`
-      : "";
+    if (rounds > 0) {
+      const len = Math.max(0, parseInt(gameLengthInput.value, 10) || 0);
+      roundsEstimateField.style.display = "block";
+      roundsEstimateNumber.textContent = `${rounds} game${rounds === 1 ? "" : "s"}`;
+      roundsEstimateReason.textContent =
+        `~${len} min/game + ${CHANGEOVER_MINUTES} min changeover per game`;
+    } else {
+      roundsEstimateField.style.display = "none";
+    }
   }
 
   function updateGamesModeUI() {
     const gamesToPlay = Math.max(0, parseInt(gamesToPlayInput.value, 10) || 0);
     const gamesMode = gamesToPlay > 0;
     targetScoreField.style.display = gamesMode ? "block" : "none";
+    targetScoreEstimateField.style.display = gamesMode ? "block" : "none";
     if (gamesMode) {
       const target = Math.max(1, Math.min(21, parseInt(targetScoreInput.value, 10) || 11));
       const perGame = estimateMinutesForTarget(target);
       const total = gamesToPlay * (perGame + CHANGEOVER_MINUTES);
-      targetScoreHint.textContent =
-        `~${perGame} min/game + ${CHANGEOVER_MINUTES} min changeover · ~${total} min total for ${gamesToPlay} game${gamesToPlay === 1 ? "" : "s"}`;
-    } else {
-      targetScoreHint.textContent = "";
+      targetScoreEstimateNumber.textContent = `${total} min`;
+      targetScoreEstimateReason.textContent =
+        `for ${gamesToPlay} game${gamesToPlay === 1 ? "" : "s"} · ~${perGame} min/game + ${CHANGEOVER_MINUTES} min changeover`;
     }
     updateRoundsHint();
   }
