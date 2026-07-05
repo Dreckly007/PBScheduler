@@ -151,6 +151,17 @@
     color: var(--muted);
     margin-top: 4px;
   }
+  .estimate-box {
+    margin-top: 8px;
+    background: #fff;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: var(--text);
+    line-height: 1.4;
+  }
+  .estimate-box:empty { display: none; }
   #targetScoreField { margin-top: 14px; }
   #targetScoreField input { max-width: 140px; }
 
@@ -449,14 +460,15 @@
         <div class="field">
           <label for="timeAvailableInput">Time available</label>
           <input type="number" id="timeAvailableInput" min="0" value="0" />
-          <div class="hint" id="roundsHint"></div>
         </div>
       </div>
+
+      <div class="estimate-box" id="roundsHint"></div>
 
       <div class="field" id="targetScoreField" style="display:none;">
         <label for="targetScoreInput">Games to be played to</label>
         <input type="number" id="targetScoreInput" min="1" max="21" value="11" />
-        <div class="hint" id="targetScoreHint"></div>
+        <div class="estimate-box" id="targetScoreHint"></div>
       </div>
 
       <div class="courts-row" id="courtLabelsRow"></div>
@@ -660,7 +672,7 @@
     }
     const rounds = computeRounds();
     roundsHint.textContent = rounds > 0
-      ? `(${rounds} round${rounds === 1 ? "" : "s"}, incl. ${CHANGEOVER_MINUTES} min changeover)`
+      ? `${rounds} round${rounds === 1 ? "" : "s"} total, incl. ${CHANGEOVER_MINUTES} min changeover per game`
       : "";
   }
 
