@@ -136,21 +136,23 @@
 
   .config-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 14px;
     margin-top: 10px;
   }
-  .config-grid .field label {
+  .field label {
     display: block;
     font-weight: 700;
     font-size: 0.95rem;
     margin-bottom: 6px;
   }
-  .config-grid .hint {
+  .hint {
     font-size: 0.82rem;
     color: var(--muted);
     margin-top: 4px;
   }
+  #targetScoreField { margin-top: 14px; }
+  #targetScoreField input { max-width: 140px; }
 
   .courts-row {
     display: flex;
@@ -432,19 +434,29 @@
 
       <div class="config-grid">
         <div class="field">
-          <label for="courtsInput">Courts</label>
-          <input type="number" id="courtsInput" min="1" max="12" value="4" />
+          <label for="courtsInput">Courts available</label>
+          <input type="number" id="courtsInput" min="1" max="12" value="1" />
+        </div>
+        <div class="field">
+          <label for="gamesToPlayInput">Games to play</label>
+          <input type="number" id="gamesToPlayInput" min="0" value="0" />
         </div>
         <div class="field">
           <label for="gameLengthInput">Game length</label>
-          <input type="number" id="gameLengthInput" min="1" value="10" />
+          <input type="number" id="gameLengthInput" min="0" value="0" />
           <div class="hint">mins</div>
         </div>
         <div class="field">
           <label for="timeAvailableInput">Time available</label>
-          <input type="number" id="timeAvailableInput" min="1" value="120" />
-          <div class="hint" id="roundsHint">(12 rounds)</div>
+          <input type="number" id="timeAvailableInput" min="0" value="0" />
+          <div class="hint" id="roundsHint"></div>
         </div>
+      </div>
+
+      <div class="field" id="targetScoreField" style="display:none;">
+        <label for="targetScoreInput">Games to be played to</label>
+        <input type="number" id="targetScoreInput" min="1" max="21" value="11" />
+        <div class="hint" id="targetScoreHint"></div>
       </div>
 
       <div class="courts-row" id="courtLabelsRow"></div>
@@ -522,15 +534,21 @@
     localStorage.setItem(key, JSON.stringify(value));
   }
 
+  const CHANGEOVER_MINUTES = 2;
+
   let todayPlayers = load(STORAGE.today, []);
   let savedPlayers = load(STORAGE.saved, []);
   let pastSessions = load(STORAGE.sessions, []);
   let config = load(STORAGE.config, {
-    courts: 4,
-    gameLength: 10,
-    timeAvailable: 120,
-    courtLabels: ["1", "2", "3", "4"],
+    courts: 1,
+    gamesToPlay: 0,
+    gameLength: 0,
+    timeAvailable: 0,
+    targetScore: 11,
+    courtLabels: ["1"],
   });
+  config.gamesToPlay = config.gamesToPlay ?? 0;
+  config.targetScore = config.targetScore ?? 11;
 
   let currentSession = null;
   let currentRoundIndex = 0;
@@ -546,9 +564,13 @@
   const managePanel = document.getElementById("managePanel");
   const sessionsPanel = document.getElementById("sessionsPanel");
   const courtsInput = document.getElementById("courtsInput");
+  const gamesToPlayInput = document.getElementById("gamesToPlayInput");
   const gameLengthInput = document.getElementById("gameLengthInput");
   const timeAvailableInput = document.getElementById("timeAvailableInput");
   const roundsHint = document.getElementById("roundsHint");
+  const targetScoreField = document.getElementById("targetScoreField");
+  const targetScoreInput = document.getElementById("targetScoreInput");
+  const targetScoreHint = document.getElementById("targetScoreHint");
   const courtLabelsRow = document.getElementById("courtLabelsRow");
   const generateBtn = document.getElementById("generateBtn");
   const debugBtn = document.getElementById("debugBtn");
@@ -573,24 +595,85 @@
   const gamesGrid = document.getElementById("gamesGrid");
 
   courtsInput.value = config.courts;
+  gamesToPlayInput.value = config.gamesToPlay;
   gameLengthInput.value = config.gameLength;
   timeAvailableInput.value = config.timeAvailable;
+  targetScoreInput.value = config.targetScore;
+
+  // Estimated minutes for a game played to a given target score.
+  // Anchored to known reference points (7->8, 9->12, 11->15, 15->20 mins,
+  // matching common recreational/tournament pool-play timing) and linearly
+  // interpolated/extrapolated for every other value from 1 to 21.
+  function estimateMinutesForTarget(target) {
+    const points = [[7, 8], [9, 12], [11, 15], [15, 20]];
+    const t = Math.max(1, Math.min(21, target));
+    if (t <= points[0][0]) {
+      const [x0, y0] = points[0];
+      const [x1, y1] = points[1];
+      const slope = (y1 - y0) / (x1 - x0);
+      return Math.max(3, Math.round(y0 + slope * (t - x0)));
+    }
+    if (t >= points[points.length - 1][0]) {
+      const [x0, y0] = points[points.length - 2];
+      const [x1, y1] = points[points.length - 1];
+      const slope = (y1 - y0) / (x1 - x0);
+      return Math.ceil(y1 + slope * (t - x1));
+    }
+    for (let i = 0; i < points.length - 1; i++) {
+      const [x0, y0] = points[i];
+      const [x1, y1] = points[i + 1];
+      if (t >= x0 && t <= x1) {
+        const slope = (y1 - y0) / (x1 - x0);
+        return Math.round(y0 + slope * (t - x0));
+      }
+    }
+    return 15;
+  }
+
+  function isGamesMode() {
+    return (parseInt(gamesToPlayInput.value, 10) || 0) > 0;
+  }
 
   function computeRounds() {
-    const len = Math.max(1, parseInt(gameLengthInput.value, 10) || 1);
-    const time = Math.max(1, parseInt(timeAvailableInput.value, 10) || 1);
-    return Math.max(1, Math.floor(time / len));
+    const len = Math.max(0, parseInt(gameLengthInput.value, 10) || 0);
+    const time = Math.max(0, parseInt(timeAvailableInput.value, 10) || 0);
+    if (len <= 0 || time <= 0) return 0;
+    return Math.max(1, Math.floor(time / (len + CHANGEOVER_MINUTES)));
   }
 
   function updateRoundsHint() {
+    if (isGamesMode()) {
+      roundsHint.textContent = "";
+      return;
+    }
     const rounds = computeRounds();
-    roundsHint.textContent = `(${rounds} round${rounds === 1 ? "" : "s"})`;
+    roundsHint.textContent = rounds > 0
+      ? `(${rounds} round${rounds === 1 ? "" : "s"}, incl. ${CHANGEOVER_MINUTES} min changeover)`
+      : "";
+  }
+
+  function updateGamesModeUI() {
+    const gamesToPlay = Math.max(0, parseInt(gamesToPlayInput.value, 10) || 0);
+    const gamesMode = gamesToPlay > 0;
+    targetScoreField.style.display = gamesMode ? "block" : "none";
+    if (gamesMode) {
+      const target = Math.max(1, Math.min(21, parseInt(targetScoreInput.value, 10) || 11));
+      const perGame = estimateMinutesForTarget(target);
+      const total = gamesToPlay * (perGame + CHANGEOVER_MINUTES);
+      targetScoreHint.textContent =
+        `~${perGame} min/game + ${CHANGEOVER_MINUTES} min changeover · ~${total} min total for ${gamesToPlay} game${gamesToPlay === 1 ? "" : "s"}`;
+    } else {
+      targetScoreHint.textContent = "";
+    }
+    updateRoundsHint();
   }
 
   function persistConfig() {
     config.courts = Math.max(1, parseInt(courtsInput.value, 10) || 1);
-    config.gameLength = Math.max(1, parseInt(gameLengthInput.value, 10) || 1);
-    config.timeAvailable = Math.max(1, parseInt(timeAvailableInput.value, 10) || 1);
+    config.gamesToPlay = Math.max(0, parseInt(gamesToPlayInput.value, 10) || 0);
+    config.gameLength = Math.max(0, parseInt(gameLengthInput.value, 10) || 0);
+    config.timeAvailable = Math.max(0, parseInt(timeAvailableInput.value, 10) || 0);
+    config.targetScore = Math.max(1, Math.min(21, parseInt(targetScoreInput.value, 10) || 11));
     save(STORAGE.config, config);
   }
 
@@ -789,6 +872,10 @@
     persistConfig();
     renderCourtLabels();
   });
+  gamesToPlayInput.addEventListener("input", () => {
+    persistConfig();
+    updateGamesModeUI();
+  });
   gameLengthInput.addEventListener("input", () => {
     persistConfig();
     updateRoundsHint();
@@ -796,6 +883,10 @@
   timeAvailableInput.addEventListener("input", () => {
     persistConfig();
     updateRoundsHint();
+  });
+  targetScoreInput.addEventListener("input", () => {
+    persistConfig();
+    updateGamesModeUI();
   });
 
   debugBtn.addEventListener("click", () => {
@@ -977,8 +1068,11 @@
   function renderInfoBar() {
     const s = currentSession;
     const avgActive = ((s.rounds.length * s.actualCourts * 4) / s.players.length).toFixed(1);
+    const gameDesc = s.config.gamesToPlay > 0
+      ? `${s.config.gameLength} min games (to ${s.config.targetScore})`
+      : `${s.config.gameLength} min games`;
     infoBar.textContent =
-      `${s.players.length} players · ${s.actualCourts} courts · ${s.config.gameLength} min games · ` +
+      `${s.players.length} players · ${s.actualCourts} courts · ${gameDesc} · ` +
       `${s.rounds.length} rounds · ~${avgActive} active each · ` +
       `Max repeat partner: ${s.maxPartner} · Max repeat opponent: ${s.maxOpponent}`;
   }
@@ -1154,7 +1248,20 @@
       return false;
     }
     persistConfig();
-    const numRounds = computeRounds();
+
+    let numRounds, effectiveGameLength;
+    if (config.gamesToPlay > 0) {
+      numRounds = config.gamesToPlay;
+      effectiveGameLength = estimateMinutesForTarget(config.targetScore);
+    } else {
+      if (config.gameLength <= 0 || config.timeAvailable <= 0) {
+        alert("Enter either a number of games to play, or a game length and time available.");
+        return false;
+      }
+      numRounds = computeRounds();
+      effectiveGameLength = config.gameLength;
+    }
+
     const { rounds, actualCourts, maxPartner, maxOpponent } = generateRounds(
       todayPlayers, numRounds, config.courts, config.courtLabels
     );
@@ -1166,7 +1273,7 @@
       id: `${pastSessions.length}-${todayPlayers.length}-${rounds.length}-${Math.random().toString(36).slice(2, 8)}`,
       date: new Date().toLocaleString(),
       players: todayPlayers.slice(),
-      config: { ...config, courtLabels: config.courtLabels.slice() },
+      config: { ...config, courtLabels: config.courtLabels.slice(), gameLength: effectiveGameLength },
       actualCourts,
       maxPartner,
       maxOpponent,
@@ -1196,7 +1303,7 @@
   renderManagePanel();
   renderSessionsPanel();
   renderCourtLabels();
-  updateRoundsHint();
+  updateGamesModeUI();
 })();
 </script>
 </body>
