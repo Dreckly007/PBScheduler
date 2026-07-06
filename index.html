@@ -574,7 +574,10 @@
           Add / Remove Players <span class="arrow">▾</span>
         </button>
         <div class="dropdown-panel">
-          <input type="text" id="rosterAddInput" placeholder="Add player name..." />
+          <div class="inline-form">
+            <input type="text" id="rosterAddInput" placeholder="Add player name..." />
+            <button class="small-btn add" id="rosterAddBtn">Add</button>
+          </div>
           <div class="chips" id="rosterChips"></div>
         </div>
       </div>
@@ -709,6 +712,7 @@
   const startOverLink = document.getElementById("startOverLink");
   const rosterChips = document.getElementById("rosterChips");
   const rosterAddInput = document.getElementById("rosterAddInput");
+  const rosterAddBtn = document.getElementById("rosterAddBtn");
   const infoBar = document.getElementById("infoBar");
   const timerDisplay = document.getElementById("timerDisplay");
   const timerStartBtn = document.getElementById("timerStartBtn");
@@ -1286,12 +1290,14 @@
     regenerateRemainingRounds(currentSession.players.filter((p) => p !== name));
   }
 
+  function submitRosterAdd() {
+    addPlayerMidSession(rosterAddInput.value);
+    rosterAddInput.value = "";
+  }
   rosterAddInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      addPlayerMidSession(rosterAddInput.value);
-      rosterAddInput.value = "";
-    }
+    if (e.key === "Enter") submitRosterAdd();
   });
+  rosterAddBtn.addEventListener("click", submitRosterAdd);
 
   function showSetupView() {
     stopTimer();
