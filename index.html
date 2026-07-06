@@ -185,20 +185,20 @@
     flex-direction: column;
     align-items: center;
   }
-  .points-row { display: flex; align-items: center; gap: 8px; }
   #targetScoreField input { max-width: 140px; }
-  .win-by-2-btn {
+  .yesno-toggle { display: flex; gap: 8px; }
+  .yesno-btn {
+    flex: 1;
     padding: 12px 14px;
     border-radius: 10px;
     border: 1px solid var(--green-pale-border);
     background: var(--green-pale);
     color: var(--green-dark);
     font-weight: 700;
-    font-size: 0.85rem;
-    white-space: nowrap;
+    font-size: 0.95rem;
     cursor: pointer;
   }
-  .win-by-2-btn.active {
+  .yesno-btn.active {
     background: var(--green);
     color: #fff;
     border-color: var(--green);
@@ -211,7 +211,7 @@
   .field.mode-inactive { opacity: 0.45; }
   .paired-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 14px;
     margin-top: 14px;
   }
@@ -560,9 +560,14 @@
       <div class="paired-grid">
         <div class="field" id="targetScoreField" style="display:none;">
           <label for="targetScoreInput">Points to win</label>
-          <div class="points-row">
-            <input type="number" id="targetScoreInput" min="1" max="21" value="11" />
-            <button type="button" class="win-by-2-btn" id="winByTwoBtn">Win by 2 clear points</button>
+          <input type="number" id="targetScoreInput" min="1" max="21" value="11" />
+        </div>
+
+        <div class="field" id="winByTwoField" style="display:none;">
+          <label>Win by 2 clear points</label>
+          <div class="yesno-toggle">
+            <button type="button" class="yesno-btn" id="winByTwoYesBtn">Yes</button>
+            <button type="button" class="yesno-btn active" id="winByTwoNoBtn">No</button>
           </div>
         </div>
 
@@ -721,7 +726,9 @@
   const roundsEstimateReason = document.getElementById("roundsEstimateReason");
   const targetScoreField = document.getElementById("targetScoreField");
   const targetScoreInput = document.getElementById("targetScoreInput");
-  const winByTwoBtn = document.getElementById("winByTwoBtn");
+  const winByTwoField = document.getElementById("winByTwoField");
+  const winByTwoYesBtn = document.getElementById("winByTwoYesBtn");
+  const winByTwoNoBtn = document.getElementById("winByTwoNoBtn");
   const targetScoreEstimateField = document.getElementById("targetScoreEstimateField");
   const targetScoreEstimateNumber = document.getElementById("targetScoreEstimateNumber");
   const targetScoreEstimateReason = document.getElementById("targetScoreEstimateReason");
@@ -830,6 +837,7 @@
     timeAvailableField.classList.toggle("mode-inactive", gamesMode);
 
     targetScoreField.style.display = gamesMode ? "block" : "none";
+    winByTwoField.style.display = gamesMode ? "block" : "none";
     targetScoreEstimateField.style.display = gamesMode ? "block" : "none";
     if (gamesMode) {
       const target = Math.max(1, Math.min(21, parseInt(targetScoreInput.value, 10) || 11));
@@ -1079,9 +1087,18 @@
     updateGamesModeUI();
   });
 
-  winByTwoBtn.addEventListener("click", () => {
-    config.winByTwo = !config.winByTwo;
-    winByTwoBtn.classList.toggle("active", config.winByTwo);
+  function syncWinByTwoButtons() {
+    winByTwoYesBtn.classList.toggle("active", config.winByTwo);
+    winByTwoNoBtn.classList.toggle("active", !config.winByTwo);
+  }
+  winByTwoYesBtn.addEventListener("click", () => {
+    config.winByTwo = true;
+    syncWinByTwoButtons();
+    save(STORAGE.config, config);
+  });
+  winByTwoNoBtn.addEventListener("click", () => {
+    config.winByTwo = false;
+    syncWinByTwoButtons();
     save(STORAGE.config, config);
   });
 
@@ -1662,7 +1679,7 @@
   renderCourtLabels();
   updateGamesModeUI();
   syncFormatButtons();
-  winByTwoBtn.classList.toggle("active", config.winByTwo);
+  syncWinByTwoButtons();
 })();
 </script>
 </body>
