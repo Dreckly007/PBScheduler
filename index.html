@@ -136,15 +136,24 @@
 
   .config-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr 1fr auto 1fr 1fr;
     gap: 14px;
     margin-top: 10px;
+  }
+  .or-divider {
+    align-self: center;
+    text-align: center;
+    font-weight: 700;
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding: 0 2px;
   }
   .field label {
     display: block;
     font-weight: 700;
     font-size: 0.95rem;
     margin-bottom: 6px;
+    text-align: center;
   }
   .hint {
     font-size: 0.82rem;
@@ -499,6 +508,7 @@
           <label for="gamesToPlayInput">Games to play</label>
           <input type="number" id="gamesToPlayInput" min="0" value="0" />
         </div>
+        <div class="or-divider">OR</div>
         <div class="field">
           <label for="gameLengthInput">Game length</label>
           <input type="number" id="gameLengthInput" min="0" value="0" />
@@ -525,7 +535,7 @@
         </div>
 
         <div class="field estimate-field" id="targetScoreEstimateField" style="display:none;">
-          <label>Estimated game time needed</label>
+          <label>Estimated playing time needed</label>
           <div class="estimate-box">
             <span class="estimate-number" id="targetScoreEstimateNumber"></span>
             <span class="estimate-reason" id="targetScoreEstimateReason"></span>
