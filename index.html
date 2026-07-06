@@ -548,6 +548,16 @@
         </div>
       </div>
 
+      <div class="dropdown no-print" id="rosterDropdown">
+        <button class="dropdown-toggle" data-target="rosterDropdown">
+          Add / Remove Players <span class="arrow">▾</span>
+        </button>
+        <div class="dropdown-panel">
+          <input type="text" id="rosterAddInput" placeholder="Add player name..." />
+          <div class="chips" id="rosterChips"></div>
+        </div>
+      </div>
+
       <div class="info-bar" id="infoBar"></div>
 
       <div class="timer-section no-print">
@@ -673,6 +683,8 @@
   const roundHeader = document.getElementById("roundHeader");
   const editPlayersLink = document.getElementById("editPlayersLink");
   const startOverLink = document.getElementById("startOverLink");
+  const rosterChips = document.getElementById("rosterChips");
+  const rosterAddInput = document.getElementById("rosterAddInput");
   const infoBar = document.getElementById("infoBar");
   const timerDisplay = document.getElementById("timerDisplay");
   const timerStartBtn = document.getElementById("timerStartBtn");
@@ -937,6 +949,9 @@
       viewBtn.className = "small-btn";
       viewBtn.textContent = "View";
       viewBtn.addEventListener("click", () => {
+        if (session.maxRoundReached === undefined) {
+          session.maxRoundReached = session.rounds.length - 1;
+        }
         currentSession = session;
         currentRoundIndex = 0;
         showSessionView();
@@ -1042,20 +1057,58 @@
     return { split: best, score: bestScore };
   }
 
-  function generateRounds(players, numRounds, courtsCount, courtLabels, format) {
-    const playersPerCourt = format === "singles" ? 2 : 4;
+  function computeFairnessState(rounds, format) {
     const partnerCount = {};
     const opponentCount = {};
     const sitCount = {};
     const lastRestRound = {};
+    rounds.forEach((round) => {
+      round.sitOuts.forEach((p) => {
+        sitCount[p] = (sitCount[p] || 0) + 1;
+        lastRestRound[p] = round.round - 1;
+      });
+      round.courts.forEach(({ teamA, teamB }) => {
+        if (format !== "singles" && teamA.length === 2) {
+          const k1 = pairKey(teamA[0], teamA[1]);
+          const k2 = pairKey(teamB[0], teamB[1]);
+          partnerCount[k1] = (partnerCount[k1] || 0) + 1;
+          partnerCount[k2] = (partnerCount[k2] || 0) + 1;
+        }
+        teamA.forEach((a) => {
+          teamB.forEach((b) => {
+            const k = pairKey(a, b);
+            opponentCount[k] = (opponentCount[k] || 0) + 1;
+          });
+        });
+      });
+    });
+    return { partnerCount, opponentCount, sitCount, lastRestRound };
+  }
+
+  function seedNewPlayers(state, roster, frozenCount) {
+    const known = roster.filter((p) => p in state.sitCount).map((p) => state.sitCount[p]);
+    const maxSit = known.length ? Math.max(...known) : 0;
+    roster.forEach((p) => {
+      if (!(p in state.sitCount)) state.sitCount[p] = maxSit;
+      if (!(p in state.lastRestRound)) state.lastRestRound[p] = frozenCount - 1;
+    });
+  }
+
+  function generateRounds(players, numRounds, courtsCount, courtLabels, format, seed) {
+    const playersPerCourt = format === "singles" ? 2 : 4;
+    const startRound = seed ? seed.startRound : 0;
+    const partnerCount = seed ? { ...seed.partnerCount } : {};
+    const opponentCount = seed ? { ...seed.opponentCount } : {};
+    const sitCount = {};
+    const lastRestRound = {};
     players.forEach((p) => {
-      sitCount[p] = 0;
-      lastRestRound[p] = -1;
+      sitCount[p] = seed && p in seed.sitCount ? seed.sitCount[p] : 0;
+      lastRestRound[p] = seed && p in seed.lastRestRound ? seed.lastRestRound[p] : -1;
     });
     const rounds = [];
     const actualCourts = Math.min(courtsCount, Math.floor(players.length / playersPerCourt));
 
-    for (let r = 0; r < numRounds; r++) {
+    for (let r = startRound; r < startRound + numRounds; r++) {
       const n = players.length;
       if (actualCourts === 0) break;
       const needed = actualCourts * playersPerCourt;
@@ -1130,6 +1183,81 @@
     return { rounds, actualCourts, maxPartner, maxOpponent };
   }
 
+  function getAllPlayersEver(session) {
+    const names = new Set(session.players);
+    session.rounds.forEach((round) => {
+      round.courts.forEach((c) => [...c.teamA, ...c.teamB].forEach((n) => names.add(n)));
+      round.sitOuts.forEach((n) => names.add(n));
+    });
+    return [...names];
+  }
+
+  function regenerateRemainingRounds(newRoster) {
+    const s = currentSession;
+    const frozenCount = (s.maxRoundReached ?? 0) + 1;
+    const frozenRounds = s.rounds.slice(0, frozenCount);
+    const tailCount = s.rounds.length - frozenCount;
+
+    const state = computeFairnessState(frozenRounds, s.config.format);
+    seedNewPlayers(state, newRoster, frozenCount);
+
+    const { rounds: tailRounds } = generateRounds(
+      newRoster, tailCount, s.config.courts, s.config.courtLabels, s.config.format,
+      { ...state, startRound: frozenCount }
+    );
+
+    s.rounds = frozenRounds.concat(tailRounds);
+    s.players = newRoster.slice();
+    s.actualCourts = Math.max(...s.rounds.map((r) => r.courts.length));
+
+    const combined = computeFairnessState(s.rounds, s.config.format);
+    s.maxPartner = Object.values(combined.partnerCount).reduce((m, v) => Math.max(m, v), 0);
+    s.maxOpponent = Object.values(combined.opponentCount).reduce((m, v) => Math.max(m, v), 0);
+
+    updateSessionInStorage();
+    renderAll();
+  }
+
+  function renderRosterChips() {
+    rosterChips.innerHTML = "";
+    currentSession.players.forEach((name) => {
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      const span = document.createElement("span");
+      span.textContent = name;
+      const btn = document.createElement("button");
+      btn.textContent = "×";
+      btn.title = "Remove";
+      btn.addEventListener("click", () => removePlayerMidSession(name));
+      chip.appendChild(span);
+      chip.appendChild(btn);
+      rosterChips.appendChild(chip);
+    });
+  }
+
+  function addPlayerMidSession(name) {
+    name = name.trim();
+    if (!name) return;
+    if (currentSession.players.some((p) => p.toLowerCase() === name.toLowerCase())) return;
+    regenerateRemainingRounds([...currentSession.players, name]);
+  }
+
+  function removePlayerMidSession(name) {
+    const min = currentSession.config.format === "singles" ? 2 : 4;
+    if (currentSession.players.length - 1 < min) {
+      alert(`Need at least ${min} players to keep playing.`);
+      return;
+    }
+    regenerateRemainingRounds(currentSession.players.filter((p) => p !== name));
+  }
+
+  rosterAddInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      addPlayerMidSession(rosterAddInput.value);
+      rosterAddInput.value = "";
+    }
+  });
+
   function showSetupView() {
     stopTimer();
     setupView.style.display = "block";
@@ -1189,7 +1317,10 @@
   function renderInfoBar() {
     const s = currentSession;
     const playersPerCourt = s.config.format === "singles" ? 2 : 4;
-    const avgActive = ((s.rounds.length * s.actualCourts * playersPerCourt) / s.players.length).toFixed(1);
+    const totalSlots = s.rounds.reduce((sum, r) => sum + r.courts.length * playersPerCourt, 0);
+    const allNames = getAllPlayersEver(s);
+    const avgActive = allNames.length ? (totalSlots / allNames.length).toFixed(1) : "0.0";
+    const courtsNow = s.rounds[currentRoundIndex].courts.length;
     const gameDesc = s.config.gamesToPlay > 0
       ? `${s.config.gameLength} min games (to ${s.config.targetScore})`
       : `${s.config.gameLength} min games`;
@@ -1198,13 +1329,17 @@
     if (s.config.format !== "singles") statParts.push(`Max repeat partner: ${s.maxPartner}`);
     statParts.push(`Max repeat opponent: ${s.maxOpponent}`);
     infoBar.textContent =
-      `${formatLabel} · ${s.players.length} players · ${s.actualCourts} courts · ${gameDesc} · ` +
+      `${formatLabel} · ${s.players.length} players · ${courtsNow} courts · ${gameDesc} · ` +
       `${s.rounds.length} rounds · ~${avgActive} active each · ` +
       statParts.join(" · ");
   }
 
   function renderRound() {
     const s = currentSession;
+    if (currentRoundIndex > (s.maxRoundReached ?? 0)) {
+      s.maxRoundReached = currentRoundIndex;
+      updateSessionInStorage();
+    }
     const round = s.rounds[currentRoundIndex];
     roundHeader.textContent = `Round ${currentRoundIndex + 1} / ${s.rounds.length}`;
 
@@ -1294,17 +1429,21 @@
 
   function renderFullSchedule() {
     const s = currentSession;
-    fullScheduleMeta.textContent = `${s.players.length} PLAYERS · ${s.actualCourts} COURTS`;
+    const maxCourts = Math.max(0, ...s.rounds.map((r) => r.courts.length));
+    fullScheduleMeta.textContent = `${s.players.length} PLAYERS · UP TO ${maxCourts} COURTS`;
     let html = "<thead><tr><th>#</th>";
-    for (let i = 0; i < s.actualCourts; i++) {
+    for (let i = 0; i < maxCourts; i++) {
       html += `<th>Court ${s.config.courtLabels[i] || i + 1}</th>`;
     }
     html += "<th>Resting</th></tr></thead><tbody>";
     s.rounds.forEach((round) => {
       html += `<tr><td>${round.round}</td>`;
-      round.courts.forEach((court) => {
-        html += `<td>${court.teamA.join(" & ")}<div class="vs">vs</div>${court.teamB.join(" & ")}</td>`;
-      });
+      for (let i = 0; i < maxCourts; i++) {
+        const court = round.courts[i];
+        html += court
+          ? `<td>${court.teamA.join(" & ")}<div class="vs">vs</div>${court.teamB.join(" & ")}</td>`
+          : `<td class="resting-cell">—</td>`;
+      }
       html += `<td class="resting-cell">${round.sitOuts.join(", ")}</td></tr>`;
     });
     html += "</tbody>";
@@ -1314,13 +1453,13 @@
   function renderGamesPlayed() {
     const s = currentSession;
     const gamesCount = {};
-    s.players.forEach((p) => (gamesCount[p] = 0));
+    getAllPlayersEver(s).forEach((p) => (gamesCount[p] = 0));
     s.rounds.forEach((round) => {
       round.courts.forEach((court) => {
         [...court.teamA, ...court.teamB].forEach((p) => (gamesCount[p] += 1));
       });
     });
-    const sortedNames = [...s.players].sort((a, b) => a.localeCompare(b));
+    const sortedNames = getAllPlayersEver(s).sort((a, b) => a.localeCompare(b));
     gamesGrid.innerHTML = "";
     sortedNames.forEach((name) => {
       const pill = document.createElement("div");
@@ -1342,6 +1481,7 @@
     renderRound();
     renderFullSchedule();
     renderGamesPlayed();
+    renderRosterChips();
   }
 
   prevBtn.addEventListener("click", () => {
@@ -1408,6 +1548,7 @@
       maxPartner,
       maxOpponent,
       rounds,
+      maxRoundReached: 0,
     };
     currentRoundIndex = 0;
     pastSessions.push(currentSession);
