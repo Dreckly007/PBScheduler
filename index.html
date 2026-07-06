@@ -185,7 +185,24 @@
     flex-direction: column;
     align-items: center;
   }
+  .points-row { display: flex; align-items: center; gap: 8px; }
   #targetScoreField input { max-width: 140px; }
+  .win-by-2-btn {
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--green-pale-border);
+    background: var(--green-pale);
+    color: var(--green-dark);
+    font-weight: 700;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .win-by-2-btn.active {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--green);
+  }
   .field.mode-active input {
     border-color: var(--green);
     background: var(--green-pale);
@@ -543,7 +560,10 @@
       <div class="paired-grid">
         <div class="field" id="targetScoreField" style="display:none;">
           <label for="targetScoreInput">Points to win</label>
-          <input type="number" id="targetScoreInput" min="1" max="21" value="11" />
+          <div class="points-row">
+            <input type="number" id="targetScoreInput" min="1" max="21" value="11" />
+            <button type="button" class="win-by-2-btn" id="winByTwoBtn">Win by 2 clear points</button>
+          </div>
         </div>
 
         <div class="field estimate-field" id="targetScoreEstimateField" style="display:none;">
@@ -655,12 +675,14 @@
     gameLength: 0,
     timeAvailable: 0,
     targetScore: 11,
+    winByTwo: false,
     format: "doubles",
     courtLabels: ["1"],
     schemaVersion: CONFIG_SCHEMA_VERSION,
   });
   config.gamesToPlay = config.gamesToPlay ?? 0;
   config.targetScore = config.targetScore ?? 11;
+  config.winByTwo = config.winByTwo ?? false;
   config.format = config.format === "singles" ? "singles" : "doubles";
   if ((config.schemaVersion || 1) < CONFIG_SCHEMA_VERSION) {
     // One-time migration: browsers with settings saved before the
@@ -699,6 +721,7 @@
   const roundsEstimateReason = document.getElementById("roundsEstimateReason");
   const targetScoreField = document.getElementById("targetScoreField");
   const targetScoreInput = document.getElementById("targetScoreInput");
+  const winByTwoBtn = document.getElementById("winByTwoBtn");
   const targetScoreEstimateField = document.getElementById("targetScoreEstimateField");
   const targetScoreEstimateNumber = document.getElementById("targetScoreEstimateNumber");
   const targetScoreEstimateReason = document.getElementById("targetScoreEstimateReason");
@@ -786,7 +809,7 @@
       roundsEstimateField.style.display = "block";
       roundsEstimateNumber.textContent = `${rounds} game${rounds === 1 ? "" : "s"}`;
       roundsEstimateReason.textContent =
-        `~${len} min/game + ${CHANGEOVER_MINUTES} min changeover per game`;
+        `${len} min/game + ${CHANGEOVER_MINUTES} min changeover per game`;
     } else {
       roundsEstimateField.style.display = "none";
     }
@@ -814,7 +837,7 @@
       const total = gamesToPlay * (perGame + CHANGEOVER_MINUTES);
       targetScoreEstimateNumber.textContent = `${total} min`;
       targetScoreEstimateReason.textContent =
-        `for ${gamesToPlay} game${gamesToPlay === 1 ? "" : "s"} · ~${perGame} min/game + ${CHANGEOVER_MINUTES} min changeover`;
+        `for ${gamesToPlay} game${gamesToPlay === 1 ? "" : "s"} · ${perGame} min/game + ${CHANGEOVER_MINUTES} min changeover`;
     }
     updateRoundsHint();
   }
@@ -1054,6 +1077,12 @@
   targetScoreInput.addEventListener("input", () => {
     persistConfig();
     updateGamesModeUI();
+  });
+
+  winByTwoBtn.addEventListener("click", () => {
+    config.winByTwo = !config.winByTwo;
+    winByTwoBtn.classList.toggle("active", config.winByTwo);
+    save(STORAGE.config, config);
   });
 
   debugBtn.addEventListener("click", () => {
@@ -1372,8 +1401,16 @@
     statParts.push(`Max repeat opponent: ${s.maxOpponent}`);
     infoBar.textContent =
       `${formatLabel} · ${s.players.length} players · ${courtsNow} courts · ${gameDesc} · ` +
-      `${s.rounds.length} rounds · ~${avgActive} active each · ` +
+      `${s.rounds.length} rounds · ${avgActive} active each · ` +
       statParts.join(" · ");
+  }
+
+  function sanitizeScoreInput(inputEl, maxVal) {
+    if (inputEl.value.includes("-")) inputEl.value = inputEl.value.replace(/-/g, "");
+    if (maxVal != null && inputEl.value !== "") {
+      const num = parseInt(inputEl.value, 10);
+      if (!isNaN(num) && num > maxVal) inputEl.value = String(maxVal);
+    }
   }
 
   function renderRound() {
@@ -1384,6 +1421,7 @@
     }
     const round = s.rounds[currentRoundIndex];
     roundHeader.textContent = `Round ${currentRoundIndex + 1} / ${s.rounds.length}`;
+    const scoreMax = (s.config.gamesToPlay > 0 && !s.config.winByTwo) ? s.config.targetScore : null;
 
     courtsContainer.innerHTML = "";
     round.courts.forEach((court) => {
@@ -1418,9 +1456,10 @@
       const scoreA = document.createElement("input");
       scoreA.type = "number";
       scoreA.min = "0";
+      if (scoreMax != null) scoreA.max = String(scoreMax);
       scoreA.value = court.scoreA;
       scoreA.addEventListener("input", () => {
-        if (scoreA.value.includes("-")) scoreA.value = scoreA.value.replace(/-/g, "");
+        sanitizeScoreInput(scoreA, scoreMax);
         court.scoreA = scoreA.value;
         updateSessionInStorage();
       });
@@ -1430,9 +1469,10 @@
       const scoreB = document.createElement("input");
       scoreB.type = "number";
       scoreB.min = "0";
+      if (scoreMax != null) scoreB.max = String(scoreMax);
       scoreB.value = court.scoreB;
       scoreB.addEventListener("input", () => {
-        if (scoreB.value.includes("-")) scoreB.value = scoreB.value.replace(/-/g, "");
+        sanitizeScoreInput(scoreB, scoreMax);
         court.scoreB = scoreB.value;
         updateSessionInStorage();
       });
@@ -1622,6 +1662,7 @@
   renderCourtLabels();
   updateGamesModeUI();
   syncFormatButtons();
+  winByTwoBtn.classList.toggle("active", config.winByTwo);
 })();
 </script>
 </body>
