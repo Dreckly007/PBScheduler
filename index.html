@@ -180,7 +180,18 @@
     font-size: 0.82rem;
     color: var(--muted);
   }
+  #targetScoreField {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
   #targetScoreField input { max-width: 140px; }
+  .field.mode-active input {
+    border-color: var(--green);
+    background: var(--green-pale);
+  }
+  .field.mode-active label { color: var(--green-dark); }
+  .field.mode-inactive { opacity: 0.45; }
   .paired-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -530,7 +541,7 @@
 
       <div class="paired-grid">
         <div class="field" id="targetScoreField" style="display:none;">
-          <label for="targetScoreInput">Games to be played to</label>
+          <label for="targetScoreInput">Points to win</label>
           <input type="number" id="targetScoreInput" min="1" max="21" value="11" />
         </div>
 
@@ -676,6 +687,9 @@
   const gamesToPlayInput = document.getElementById("gamesToPlayInput");
   const gameLengthInput = document.getElementById("gameLengthInput");
   const timeAvailableInput = document.getElementById("timeAvailableInput");
+  const gamesToPlayField = gamesToPlayInput.closest(".field");
+  const gameLengthField = gameLengthInput.closest(".field");
+  const timeAvailableField = timeAvailableInput.closest(".field");
   const roundsEstimateField = document.getElementById("roundsEstimateField");
   const roundsEstimateNumber = document.getElementById("roundsEstimateNumber");
   const roundsEstimateReason = document.getElementById("roundsEstimateReason");
@@ -775,7 +789,18 @@
 
   function updateGamesModeUI() {
     const gamesToPlay = Math.max(0, parseInt(gamesToPlayInput.value, 10) || 0);
+    const gameLength = Math.max(0, parseInt(gameLengthInput.value, 10) || 0);
+    const timeAvailable = Math.max(0, parseInt(timeAvailableInput.value, 10) || 0);
     const gamesMode = gamesToPlay > 0;
+    const timeMode = !gamesMode && (gameLength > 0 || timeAvailable > 0);
+
+    gamesToPlayField.classList.toggle("mode-active", gamesMode);
+    gamesToPlayField.classList.toggle("mode-inactive", timeMode);
+    gameLengthField.classList.toggle("mode-active", timeMode);
+    gameLengthField.classList.toggle("mode-inactive", gamesMode);
+    timeAvailableField.classList.toggle("mode-active", timeMode);
+    timeAvailableField.classList.toggle("mode-inactive", gamesMode);
+
     targetScoreField.style.display = gamesMode ? "block" : "none";
     targetScoreEstimateField.style.display = gamesMode ? "block" : "none";
     if (gamesMode) {
@@ -1015,11 +1040,11 @@
   });
   gameLengthInput.addEventListener("input", () => {
     persistConfig();
-    updateRoundsHint();
+    updateGamesModeUI();
   });
   timeAvailableInput.addEventListener("input", () => {
     persistConfig();
-    updateRoundsHint();
+    updateGamesModeUI();
   });
   targetScoreInput.addEventListener("input", () => {
     persistConfig();
