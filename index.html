@@ -348,12 +348,13 @@
     border-top: 1px solid #eee;
     margin-top: 12px;
   }
-  .score-row .label-left { text-align: left; color: var(--muted); font-size: 0.85rem; }
-  .score-row .label-right { text-align: right; color: var(--muted); font-size: 0.85rem; }
+  .score-row .label-left { text-align: left; color: var(--muted); font-size: 0.85rem; padding-left: 14px; }
+  .score-row .label-right { text-align: right; color: var(--muted); font-size: 0.85rem; padding-right: 14px; }
   .score-inputs { display: flex; align-items: center; gap: 8px; justify-content: center; }
   .score-inputs input {
-    width: 40px;
-    height: 36px;
+    width: 56px;
+    height: 44px;
+    font-size: 1.1rem;
     text-align: center;
     padding: 0;
     border: 1px solid var(--card-border);
@@ -1416,8 +1417,10 @@
       inputs.className = "score-inputs";
       const scoreA = document.createElement("input");
       scoreA.type = "number";
+      scoreA.min = "0";
       scoreA.value = court.scoreA;
       scoreA.addEventListener("input", () => {
+        if (scoreA.value.includes("-")) scoreA.value = scoreA.value.replace(/-/g, "");
         court.scoreA = scoreA.value;
         updateSessionInStorage();
       });
@@ -1426,8 +1429,10 @@
       dash.textContent = "—";
       const scoreB = document.createElement("input");
       scoreB.type = "number";
+      scoreB.min = "0";
       scoreB.value = court.scoreB;
       scoreB.addEventListener("input", () => {
+        if (scoreB.value.includes("-")) scoreB.value = scoreB.value.replace(/-/g, "");
         court.scoreB = scoreB.value;
         updateSessionInStorage();
       });
