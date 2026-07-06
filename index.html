@@ -174,6 +174,28 @@
   #targetScoreField { margin-top: 14px; }
   #targetScoreField input { max-width: 140px; }
 
+  .format-toggle {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .format-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--green-pale-border);
+    background: var(--green-pale);
+    color: var(--green-dark);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .format-btn.active {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--green);
+  }
+
   .courts-row {
     display: flex;
     flex-wrap: wrap;
@@ -452,6 +474,12 @@
         <div class="dropdown-panel" id="sessionsPanel"></div>
       </div>
 
+      <label class="section-label">Play format</label>
+      <div class="format-toggle" id="formatToggle">
+        <button type="button" class="format-btn active" data-format="doubles">Doubles</button>
+        <button type="button" class="format-btn" data-format="singles">Singles</button>
+      </div>
+
       <div class="config-grid">
         <div class="field">
           <label for="courtsInput">Courts available</label>
@@ -580,11 +608,13 @@
     gameLength: 0,
     timeAvailable: 0,
     targetScore: 11,
+    format: "doubles",
     courtLabels: ["1"],
     schemaVersion: CONFIG_SCHEMA_VERSION,
   });
   config.gamesToPlay = config.gamesToPlay ?? 0;
   config.targetScore = config.targetScore ?? 11;
+  config.format = config.format === "singles" ? "singles" : "doubles";
   if ((config.schemaVersion || 1) < CONFIG_SCHEMA_VERSION) {
     // One-time migration: browsers with settings saved before the
     // "games to play" mode existed get bumped onto the new defaults.
@@ -609,6 +639,7 @@
   const pickPanel = document.getElementById("pickPanel");
   const managePanel = document.getElementById("managePanel");
   const sessionsPanel = document.getElementById("sessionsPanel");
+  const formatButtons = document.querySelectorAll("#formatToggle .format-btn");
   const courtsInput = document.getElementById("courtsInput");
   const gamesToPlayInput = document.getElementById("gamesToPlayInput");
   const gameLengthInput = document.getElementById("gameLengthInput");
@@ -924,6 +955,19 @@
     });
   });
 
+  function syncFormatButtons() {
+    formatButtons.forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.format === config.format);
+    });
+  }
+  formatButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      config.format = btn.dataset.format;
+      save(STORAGE.config, config);
+      syncFormatButtons();
+    });
+  });
+
   courtsInput.addEventListener("input", () => {
     persistConfig();
     renderCourtLabels();
@@ -986,7 +1030,8 @@
     return { split: best, score: bestScore };
   }
 
-  function generateRounds(players, numRounds, courtsCount, courtLabels) {
+  function generateRounds(players, numRounds, courtsCount, courtLabels, format) {
+    const playersPerCourt = format === "singles" ? 2 : 4;
     const partnerCount = {};
     const opponentCount = {};
     const sitCount = {};
@@ -996,12 +1041,12 @@
       lastRestRound[p] = -1;
     });
     const rounds = [];
-    const actualCourts = Math.min(courtsCount, Math.floor(players.length / 4));
+    const actualCourts = Math.min(courtsCount, Math.floor(players.length / playersPerCourt));
 
     for (let r = 0; r < numRounds; r++) {
       const n = players.length;
       if (actualCourts === 0) break;
-      const needed = actualCourts * 4;
+      const needed = actualCourts * playersPerCourt;
       const sitOutNeeded = n - needed;
 
       const tiebreak = {};
@@ -1024,9 +1069,14 @@
         const shuffled = shuffle(playing);
         const groups = [];
         for (let i = 0; i < actualCourts; i++) {
-          groups.push(shuffled.slice(i * 4, i * 4 + 4));
+          groups.push(shuffled.slice(i * playersPerCourt, i * playersPerCourt + playersPerCourt));
         }
-        const results = groups.map((g) => bestTeamSplit(g, partnerCount));
+        const results = format === "singles"
+          ? groups.map((g) => ({
+              split: { teamA: [g[0]], teamB: [g[1]] },
+              score: opponentCount[pairKey(g[0], g[1])] || 0,
+            }))
+          : groups.map((g) => bestTeamSplit(g, partnerCount));
         const totalScore = results.reduce((sum, res) => sum + res.score, 0);
         if (totalScore < bestScore) {
           bestScore = totalScore;
@@ -1037,10 +1087,12 @@
 
       bestGrouping.forEach((res) => {
         const { teamA, teamB } = res.split;
-        const key1 = pairKey(teamA[0], teamA[1]);
-        const key2 = pairKey(teamB[0], teamB[1]);
-        partnerCount[key1] = (partnerCount[key1] || 0) + 1;
-        partnerCount[key2] = (partnerCount[key2] || 0) + 1;
+        if (format !== "singles") {
+          const key1 = pairKey(teamA[0], teamA[1]);
+          const key2 = pairKey(teamB[0], teamB[1]);
+          partnerCount[key1] = (partnerCount[key1] || 0) + 1;
+          partnerCount[key2] = (partnerCount[key2] || 0) + 1;
+        }
         teamA.forEach((a) => {
           teamB.forEach((b) => {
             const k = pairKey(a, b);
@@ -1070,6 +1122,7 @@
     stopTimer();
     setupView.style.display = "block";
     sessionView.style.display = "none";
+    syncFormatButtons();
   }
   function showSessionView() {
     setupView.style.display = "none";
@@ -1123,14 +1176,19 @@
 
   function renderInfoBar() {
     const s = currentSession;
-    const avgActive = ((s.rounds.length * s.actualCourts * 4) / s.players.length).toFixed(1);
+    const playersPerCourt = s.config.format === "singles" ? 2 : 4;
+    const avgActive = ((s.rounds.length * s.actualCourts * playersPerCourt) / s.players.length).toFixed(1);
     const gameDesc = s.config.gamesToPlay > 0
       ? `${s.config.gameLength} min games (to ${s.config.targetScore})`
       : `${s.config.gameLength} min games`;
+    const formatLabel = s.config.format === "singles" ? "Singles" : "Doubles";
+    const statParts = [];
+    if (s.config.format !== "singles") statParts.push(`Max repeat partner: ${s.maxPartner}`);
+    statParts.push(`Max repeat opponent: ${s.maxOpponent}`);
     infoBar.textContent =
-      `${s.players.length} players · ${s.actualCourts} courts · ${gameDesc} · ` +
+      `${formatLabel} · ${s.players.length} players · ${s.actualCourts} courts · ${gameDesc} · ` +
       `${s.rounds.length} rounds · ~${avgActive} active each · ` +
-      `Max repeat partner: ${s.maxPartner} · Max repeat opponent: ${s.maxOpponent}`;
+      statParts.join(" · ");
   }
 
   function renderRound() {
@@ -1150,7 +1208,10 @@
 
       const teamBox = document.createElement("div");
       teamBox.className = "team-box";
-      [court.teamA[0], court.teamB[0], court.teamA[1], court.teamB[1]].forEach((name) => {
+      const cellNames = court.teamA.length === 2
+        ? [court.teamA[0], court.teamB[0], court.teamA[1], court.teamB[1]]
+        : [court.teamA[0], court.teamB[0]];
+      cellNames.forEach((name) => {
         const cell = document.createElement("div");
         cell.className = "team-cell";
         cell.textContent = name;
@@ -1299,8 +1360,9 @@
   });
 
   function buildAndShowSession() {
-    if (todayPlayers.length < 4) {
-      alert("Add at least 4 players to generate a schedule.");
+    const minPlayers = config.format === "singles" ? 2 : 4;
+    if (todayPlayers.length < minPlayers) {
+      alert(`Add at least ${minPlayers} players to generate a schedule.`);
       return false;
     }
     persistConfig();
@@ -1319,10 +1381,10 @@
     }
 
     const { rounds, actualCourts, maxPartner, maxOpponent } = generateRounds(
-      todayPlayers, numRounds, config.courts, config.courtLabels
+      todayPlayers, numRounds, config.courts, config.courtLabels, config.format
     );
     if (rounds.length === 0) {
-      alert("Not enough players for even one court (need at least 4).");
+      alert(`Not enough players for even one court (need at least ${minPlayers}).`);
       return false;
     }
     currentSession = {
@@ -1360,6 +1422,7 @@
   renderSessionsPanel();
   renderCourtLabels();
   updateGamesModeUI();
+  syncFormatButtons();
 })();
 </script>
 </body>
