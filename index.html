@@ -492,7 +492,10 @@
 
     <div id="setupView">
       <label class="section-label">Today's players</label>
-      <input type="text" id="playerInput" placeholder="Type a name to add..." />
+      <div class="inline-form">
+        <input type="text" id="playerInput" placeholder="Type a name to add..." />
+        <button class="small-btn add" id="playerAddBtn">Add</button>
+      </div>
       <div class="chips" id="todayChips"></div>
 
       <div class="dropdown" id="pickDropdown">
@@ -709,6 +712,7 @@
   const sessionView = document.getElementById("sessionView");
 
   const playerInput = document.getElementById("playerInput");
+  const playerAddBtn = document.getElementById("playerAddBtn");
   const todayChips = document.getElementById("todayChips");
   const pickPanel = document.getElementById("pickPanel");
   const managePanel = document.getElementById("managePanel");
@@ -917,12 +921,14 @@
     renderPickPanel();
   }
 
+  function submitPlayerAdd() {
+    addTodayPlayer(playerInput.value);
+    playerInput.value = "";
+  }
   playerInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      addTodayPlayer(playerInput.value);
-      playerInput.value = "";
-    }
+    if (e.key === "Enter") submitPlayerAdd();
   });
+  playerAddBtn.addEventListener("click", submitPlayerAdd);
 
   function renderPickPanel() {
     pickPanel.innerHTML = "";
