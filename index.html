@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Pickleball Scheduler</title>
 <style>
-  :root {
+  :root, [data-theme="cornish-gold"] {
     --green: #b8860b;
     --green-dark: #8b6508;
     --green-pale: #fbf3dc;
@@ -13,20 +13,110 @@
     --bg: #eef1f4;
     --card-border: #d7dce2;
     --text: #1f2937;
+    --body-text: #1f2937;
     --muted: #6b7280;
     --dark-cell: var(--green);
+    --on-accent: #fff;
+    --bg-image: none;
   }
+
+  [data-theme="court-green"] {
+    --green: #2f8f46;
+    --green-dark: #1f6b32;
+    --green-pale: #e6f5ea;
+    --green-pale-border: #bfe3c9;
+    --bg: #eef6f0;
+    --card-border: #cfe0d3;
+    --body-text: #1f2937;
+    --muted: #5f7268;
+    --on-accent: #fff;
+    --bg-image: linear-gradient(to bottom, transparent 0, transparent 190px, rgba(255,255,255,0.55) 190px, rgba(255,255,255,0.55) 196px, transparent 196px);
+  }
+
+  [data-theme="optic-yellow"] {
+    --green: #c9d400;
+    --green-dark: #838c00;
+    --green-pale: #fbf8d9;
+    --green-pale-border: #ece49a;
+    --bg: #fafbf0;
+    --card-border: #e5e6d0;
+    --body-text: #1f2937;
+    --muted: #6b7280;
+    --on-accent: #1f2937;
+    --bg-image: radial-gradient(circle, rgba(201,212,0,0.18) 2px, transparent 2.5px);
+  }
+
+  [data-theme="paddle-wood"] {
+    --green: #a5652f;
+    --green-dark: #7a481f;
+    --green-pale: #f3e3cf;
+    --green-pale-border: #e0c39c;
+    --bg: #f7ecd9;
+    --card-border: #e6d3b8;
+    --body-text: #3a2a1a;
+    --muted: #7a6a55;
+    --on-accent: #fff;
+    --bg-image: linear-gradient(160deg, #f7ecd9, #ecd8b4);
+  }
+
+  [data-theme="night-match"] {
+    --green: #cdfa3f;
+    --green-dark: #9fd925;
+    --green-pale: #1c2a16;
+    --green-pale-border: #3a5222;
+    --bg: #0b1220;
+    --card-border: #2a3648;
+    --body-text: #e8edf2;
+    --muted: #8fa0b3;
+    --on-accent: #0b1220;
+    --bg-image: radial-gradient(ellipse 900px 500px at 50% -10%, rgba(205,250,63,0.14), transparent 60%);
+  }
+
+  [data-theme="sunset-court"] {
+    --green: #6b3fa0;
+    --green-dark: #4d2b73;
+    --green-pale: #f3e8ff;
+    --green-pale-border: #dcc2f0;
+    --bg: #fde9dd;
+    --card-border: #f0c9b0;
+    --body-text: #3a2340;
+    --muted: #8a5a68;
+    --on-accent: #fff;
+    --bg-image: linear-gradient(160deg, #ffe8d6, #ffd6e0);
+  }
+
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    background: var(--bg);
+    background-color: var(--bg);
+    background-image: var(--bg-image);
+    background-repeat: no-repeat;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color: var(--text);
+    color: var(--body-text);
     padding: 32px 16px 80px;
+    position: relative;
+  }
+  [data-theme="optic-yellow"] body {
+    background-repeat: repeat;
+    background-size: 26px 26px;
   }
   .app {
     max-width: 640px;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+  .bg-watermark {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 560px;
+    height: 476px;
+    max-width: 90vw;
+    opacity: 0.09;
+    z-index: 0;
+    pointer-events: none;
   }
   h1 {
     text-align: center;
@@ -64,6 +154,7 @@
     align-items: center;
     gap: 6px;
     background: #fff;
+    color: var(--text);
     border: 1px solid var(--card-border);
     border-radius: 999px;
     padding: 6px 8px 6px 14px;
@@ -102,6 +193,7 @@
   .dropdown-panel {
     display: none;
     background: #fff;
+    color: var(--text);
     border: 1px solid var(--card-border);
     border-top: none;
     border-radius: 0 0 10px 10px;
@@ -200,12 +292,13 @@
   }
   .yesno-btn.active {
     background: var(--green);
-    color: #fff;
+    color: var(--on-accent);
     border-color: var(--green);
   }
   .field.mode-active input {
     border-color: var(--green);
     background: var(--green-pale);
+    color: var(--green-dark);
   }
   .field.mode-active label { color: var(--green-dark); }
   .field.mode-inactive { opacity: 0.45; }
@@ -238,9 +331,61 @@
   }
   .format-btn.active {
     background: var(--green);
-    color: #fff;
+    color: var(--on-accent);
     border-color: var(--green);
   }
+
+  .theme-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .theme-swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 10px;
+    width: 74px;
+  }
+  .theme-swatch .swatch-dot {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    box-sizing: border-box;
+  }
+  .theme-swatch.active .swatch-dot {
+    border-color: var(--body-text);
+  }
+  .theme-swatch .swatch-name {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--body-text);
+    text-align: center;
+    line-height: 1.2;
+  }
+  .custom-color-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .custom-color-row input[type="color"] {
+    width: 44px;
+    height: 44px;
+    padding: 2px;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+  }
+  .custom-color-row .hint { margin-top: 0; }
 
   .courts-row {
     display: flex;
@@ -261,7 +406,7 @@
     width: 100%;
     margin-top: 22px;
     background: var(--green);
-    color: #fff;
+    color: var(--on-accent);
     font-weight: 700;
     font-size: 1.05rem;
     padding: 16px;
@@ -320,7 +465,7 @@
   .timer-display { font-size: 3.2rem; font-weight: 800; color: var(--green-dark); line-height: 1; }
   .timer-buttons { display: flex; justify-content: center; gap: 10px; margin-top: 12px; }
   .timer-btn { padding: 10px 26px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.95rem; }
-  .timer-btn.start { background: var(--green); color: #fff; border: none; }
+  .timer-btn.start { background: var(--green); color: var(--on-accent); border: none; }
   .timer-btn.reset { background: #fff; color: var(--text); border: 1px solid var(--card-border); }
 
   .court-card {
@@ -350,7 +495,7 @@
   }
   .team-cell {
     background: var(--dark-cell);
-    color: #fff;
+    color: var(--on-accent);
     font-weight: 700;
     text-align: center;
     padding: 14px 10px;
@@ -403,7 +548,7 @@
   .nav-btn { flex: 1; padding: 14px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; cursor: pointer; border: none; }
   .nav-btn.prev { background: #dfe3e8; color: #9aa3ae; }
   .nav-btn.prev:disabled { cursor: not-allowed; }
-  .nav-btn.next { background: var(--green); color: #fff; }
+  .nav-btn.next { background: var(--green); color: var(--on-accent); }
   .nav-btn.next:disabled { background: #d9c79a; cursor: not-allowed; }
 
   .outline-btn {
@@ -429,7 +574,7 @@
   }
   .panel-header {
     background: var(--green-dark);
-    color: #fff;
+    color: var(--on-accent);
     padding: 12px 18px;
     display: flex;
     justify-content: space-between;
@@ -452,7 +597,7 @@
     text-align: left;
     white-space: nowrap;
   }
-  .schedule-table td { padding: 10px 12px; vertical-align: top; border-top: 1px solid #f0f0f0; }
+  .schedule-table td { padding: 10px 12px; vertical-align: top; border-top: 1px solid #f0f0f0; color: var(--text); }
   .schedule-table tr:nth-child(even) td { background: #fdf9ef; }
   .schedule-table .vs { text-align: center; color: var(--muted); font-size: 0.72rem; margin: 2px 0; }
   .schedule-table .resting-cell { color: var(--green-dark); font-size: 0.8rem; }
@@ -471,9 +616,10 @@
     border-radius: 10px;
     padding: 8px 12px;
     font-size: 0.85rem;
+    color: var(--text);
   }
   .game-pill .name { font-weight: 700; }
-  .game-pill .count { background: var(--green); color: #fff; border-radius: 999px; padding: 2px 10px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+  .game-pill .count { background: var(--green); color: var(--on-accent); border-radius: 999px; padding: 2px 10px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
 
   @media (max-width: 480px) {
     .config-grid { grid-template-columns: 1fr; }
@@ -487,10 +633,44 @@
 </style>
 </head>
 <body>
+  <svg class="bg-watermark" id="bgWatermark" viewBox="0 0 200 170" aria-hidden="true">
+    <defs>
+      <g id="clublogo-paddle">
+        <rect x="-7" y="82" width="14" height="52" rx="6" fill="#8a8a8a"/>
+        <line x1="-6" y1="92" x2="6" y2="92" stroke="#6f6f6f" stroke-width="2"/>
+        <line x1="-6" y1="101" x2="6" y2="101" stroke="#6f6f6f" stroke-width="2"/>
+        <line x1="-6" y1="110" x2="6" y2="110" stroke="#6f6f6f" stroke-width="2"/>
+        <line x1="-6" y1="119" x2="6" y2="119" stroke="#6f6f6f" stroke-width="2"/>
+        <path d="M -13,66 L 13,66 L 7,85 L -7,85 Z" fill="var(--green)"/>
+        <rect x="-40" y="0" width="80" height="78" rx="20" fill="var(--green)"/>
+        <rect x="-9" y="6" width="18" height="66" fill="var(--bg)"/>
+        <rect x="-33" y="30" width="66" height="18" fill="var(--bg)"/>
+      </g>
+    </defs>
+    <use href="#clublogo-paddle" transform="translate(100,128) rotate(-56) translate(0,-95)"/>
+    <use href="#clublogo-paddle" transform="translate(100,128) rotate(56) translate(0,-95)"/>
+    <g transform="translate(100,26)">
+      <circle r="17" fill="var(--green)"/>
+      <circle cx="-6" cy="-9" r="2.6" fill="var(--bg)"/>
+      <circle cx="7" cy="-9" r="2.6" fill="var(--bg)"/>
+      <circle cx="-11" cy="1" r="2.6" fill="var(--bg)"/>
+      <circle cx="0" cy="2" r="2.6" fill="var(--bg)"/>
+      <circle cx="11" cy="1" r="2.6" fill="var(--bg)"/>
+      <circle cx="-6" cy="10" r="2.6" fill="var(--bg)"/>
+      <circle cx="7" cy="10" r="2.6" fill="var(--bg)"/>
+    </g>
+  </svg>
   <div class="app">
     <h1>Pickleball Scheduler</h1>
 
     <div id="setupView">
+      <label class="section-label">Colour theme</label>
+      <div class="theme-swatches" id="themeSwatches"></div>
+      <div class="custom-color-row" id="customColorRow" style="display:none;">
+        <input type="color" id="customColorInput" value="#b8860b" />
+        <span class="hint">Pick your own colour</span>
+      </div>
+
       <label class="section-label">Today's players</label>
       <div class="inline-form">
         <input type="text" id="playerInput" placeholder="Type a name to add..." />
@@ -686,10 +866,14 @@
     winByTwo: false,
     format: "doubles",
     courtLabels: ["1"],
+    theme: "cornish-gold",
+    customColor: "#b8860b",
     schemaVersion: CONFIG_SCHEMA_VERSION,
   });
   config.gamesToPlay = config.gamesToPlay ?? 0;
   config.targetScore = config.targetScore ?? 11;
+  config.theme = config.theme || "cornish-gold";
+  config.customColor = config.customColor || "#b8860b";
   config.winByTwo = config.winByTwo ?? false;
   config.format = config.format === "singles" ? "singles" : "doubles";
   if ((config.schemaVersion || 1) < CONFIG_SCHEMA_VERSION) {
@@ -717,6 +901,9 @@
   const pickPanel = document.getElementById("pickPanel");
   const managePanel = document.getElementById("managePanel");
   const sessionsPanel = document.getElementById("sessionsPanel");
+  const themeSwatchesContainer = document.getElementById("themeSwatches");
+  const customColorRow = document.getElementById("customColorRow");
+  const customColorInput = document.getElementById("customColorInput");
   const formatButtons = document.querySelectorAll("#formatToggle .format-btn");
   const courtsInput = document.getElementById("courtsInput");
   const gamesToPlayInput = document.getElementById("gamesToPlayInput");
@@ -1070,6 +1257,137 @@
       save(STORAGE.config, config);
       syncFormatButtons();
     });
+  });
+
+  const THEMES = [
+    { key: "cornish-gold", name: "Cornish Gold", swatch: "#b8860b" },
+    { key: "court-green", name: "Court Green", swatch: "#2f8f46" },
+    { key: "optic-yellow", name: "Optic Yellow", swatch: "#c9d400" },
+    { key: "paddle-wood", name: "Paddle Wood", swatch: "#a5652f" },
+    { key: "night-match", name: "Night Match", swatch: "#cdfa3f" },
+    { key: "sunset-court", name: "Sunset Court", swatch: "#6b3fa0" },
+    { key: "custom", name: "Custom", swatch: null },
+  ];
+
+  function hexToRgb(hex) {
+    const clean = hex.replace("#", "");
+    return {
+      r: parseInt(clean.substring(0, 2), 16),
+      g: parseInt(clean.substring(2, 4), 16),
+      b: parseInt(clean.substring(4, 6), 16),
+    };
+  }
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s;
+    const l = (max + min) / 2;
+    if (max === min) {
+      h = s = 0;
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        default: h = (r - g) / d + 4;
+      }
+      h /= 6;
+    }
+    return { h: h * 360, s: s * 100, l: l * 100 };
+  }
+  function hslToHex(h, s, l) {
+    h /= 360; s /= 100; l /= 100;
+    let r, g, b;
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const hue2rgb = (p, q, t) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+      };
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1 / 3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1 / 3);
+    }
+    const toHex = (v) => Math.round(v * 255).toString(16).padStart(2, "0");
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  }
+
+  function clearCustomOverrides() {
+    const root = document.documentElement.style;
+    ["--green", "--green-dark", "--green-pale", "--green-pale-border", "--on-accent"].forEach((prop) => {
+      root.removeProperty(prop);
+    });
+  }
+
+  function applyCustomColor(hex) {
+    const { r, g, b } = hexToRgb(hex);
+    const { h, s, l } = rgbToHsl(r, g, b);
+    const green = hex;
+    const greenDark = hslToHex(h, s, Math.max(0, l - 18));
+    const greenPale = hslToHex(h, Math.min(s, 45), 92);
+    const greenPaleBorder = hslToHex(h, Math.min(s, 55), 80);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    const onAccent = luminance > 0.6 ? "#1f2937" : "#ffffff";
+
+    const root = document.documentElement.style;
+    root.setProperty("--green", green);
+    root.setProperty("--green-dark", greenDark);
+    root.setProperty("--green-pale", greenPale);
+    root.setProperty("--green-pale-border", greenPaleBorder);
+    root.setProperty("--on-accent", onAccent);
+
+    config.theme = "custom";
+    config.customColor = hex;
+    save(STORAGE.config, config);
+  }
+
+  function applyTheme(themeKey) {
+    if (themeKey === "custom") {
+      applyCustomColor(config.customColor);
+      document.documentElement.setAttribute("data-theme", "custom");
+    } else {
+      clearCustomOverrides();
+      document.documentElement.setAttribute("data-theme", themeKey);
+      config.theme = themeKey;
+      save(STORAGE.config, config);
+    }
+    renderThemeSwatches();
+  }
+
+  function renderThemeSwatches() {
+    themeSwatchesContainer.innerHTML = "";
+    THEMES.forEach((theme) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "theme-swatch" + (config.theme === theme.key ? " active" : "");
+      const dot = document.createElement("span");
+      dot.className = "swatch-dot";
+      dot.style.background = theme.key === "custom" ? config.customColor : theme.swatch;
+      const name = document.createElement("span");
+      name.className = "swatch-name";
+      name.textContent = theme.name;
+      btn.appendChild(dot);
+      btn.appendChild(name);
+      btn.addEventListener("click", () => {
+        applyTheme(theme.key);
+      });
+      themeSwatchesContainer.appendChild(btn);
+    });
+    customColorRow.style.display = config.theme === "custom" ? "flex" : "none";
+    customColorInput.value = config.customColor;
+  }
+
+  customColorInput.addEventListener("input", () => {
+    applyCustomColor(customColorInput.value);
+    renderThemeSwatches();
   });
 
   courtsInput.addEventListener("input", () => {
@@ -1678,6 +1996,7 @@
     todayPlayers = prevPlayers;
   });
 
+  applyTheme(config.theme);
   renderTodayChips();
   renderPickPanel();
   renderManagePanel();
