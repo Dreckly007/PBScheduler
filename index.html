@@ -297,6 +297,9 @@
   .chip button:hover { background: #f1f1f1; color: #c0392b; }
 
   .dropdown { margin-top: 12px; }
+  .dropdown-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; margin-top: 12px; }
+  .dropdown-row .dropdown { flex: 1 1 0; min-width: 0; margin-top: 0; }
+  .dropdown-row.expanded .dropdown { flex: 1 1 100%; }
   .dropdown-toggle {
     width: 100%;
     text-align: left;
@@ -760,6 +763,8 @@
     .config-grid .or-divider { grid-column: 1 / -1; }
     .games-grid { grid-template-columns: 1fr; }
     .paired-grid { grid-template-columns: 1fr; }
+    .dropdown-row .dropdown-toggle { font-size: 0.78rem; padding: 12px 8px; }
+    .dropdown-row .dropdown-toggle .arrow { flex-shrink: 0; margin-left: 4px; }
   }
 
   @media print {
@@ -830,24 +835,26 @@
         <div class="dropdown-panel" id="pickPanel"></div>
       </div>
 
-      <div class="dropdown" id="manageDropdown">
-        <button class="dropdown-toggle" data-target="manageDropdown">
-          Manage saved names <span class="arrow">▾</span>
-        </button>
-        <div class="dropdown-panel">
-          <div id="managePanel"></div>
-          <div class="inline-form">
-            <input type="text" id="newSavedName" placeholder="Add a new saved name..." />
-            <button class="small-btn add" id="addSavedBtn">Add</button>
+      <div class="dropdown-row">
+        <div class="dropdown" id="manageDropdown">
+          <button class="dropdown-toggle" data-target="manageDropdown">
+            Manage saved names <span class="arrow">▾</span>
+          </button>
+          <div class="dropdown-panel">
+            <div id="managePanel"></div>
+            <div class="inline-form">
+              <input type="text" id="newSavedName" placeholder="Add a new saved name..." />
+              <button class="small-btn add" id="addSavedBtn">Add</button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="dropdown" id="sessionsDropdown">
-        <button class="dropdown-toggle" data-target="sessionsDropdown">
-          Past sessions <span class="arrow">▾</span>
-        </button>
-        <div class="dropdown-panel" id="sessionsPanel"></div>
+        <div class="dropdown" id="sessionsDropdown">
+          <button class="dropdown-toggle" data-target="sessionsDropdown">
+            Past sessions <span class="arrow">▾</span>
+          </button>
+          <div class="dropdown-panel" id="sessionsPanel"></div>
+        </div>
       </div>
 
       <label class="section-label">Play format</label>
@@ -1389,7 +1396,12 @@
       const dropdown = document.getElementById(btn.dataset.target);
       const isOpen = dropdown.classList.contains("open");
       document.querySelectorAll(".dropdown.open").forEach((d) => d.classList.remove("open"));
-      if (!isOpen) dropdown.classList.add("open");
+      document.querySelectorAll(".dropdown-row.expanded").forEach((r) => r.classList.remove("expanded"));
+      if (!isOpen) {
+        dropdown.classList.add("open");
+        const row = dropdown.closest(".dropdown-row");
+        if (row) row.classList.add("expanded");
+      }
     });
   });
 
