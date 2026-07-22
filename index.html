@@ -312,6 +312,14 @@
     justify-content: space-between;
     align-items: center;
   }
+  .dropdown-toggle-label { display: flex; align-items: center; gap: 8px; }
+  .theme-toggle-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.15);
+    flex-shrink: 0;
+  }
   .dropdown-toggle .arrow { transition: transform 0.15s ease; }
   .dropdown.open .dropdown-toggle .arrow { transform: rotate(180deg); }
   .dropdown-panel {
@@ -790,11 +798,21 @@
     <h1>Pickleball Scheduler</h1>
 
     <div id="setupView">
-      <label class="section-label">Colour theme</label>
-      <div class="theme-swatches" id="themeSwatches"></div>
-      <div class="custom-color-row" id="customColorRow" style="display:none;">
-        <input type="color" id="customColorInput" value="#b8860b" />
-        <span class="hint">Pick your own colour</span>
+      <div class="dropdown" id="themeDropdown">
+        <button class="dropdown-toggle" data-target="themeDropdown">
+          <span class="dropdown-toggle-label">
+            <span class="theme-toggle-dot" id="themeToggleDot"></span>
+            Colour theme: <span id="themeToggleName">Cornish Gold</span>
+          </span>
+          <span class="arrow">▾</span>
+        </button>
+        <div class="dropdown-panel">
+          <div class="theme-swatches" id="themeSwatches"></div>
+          <div class="custom-color-row" id="customColorRow" style="display:none;">
+            <input type="color" id="customColorInput" value="#b8860b" />
+            <span class="hint">Pick your own colour</span>
+          </div>
+        </div>
       </div>
 
       <label class="section-label">Today's players</label>
@@ -1030,6 +1048,8 @@
   const themeSwatchesContainer = document.getElementById("themeSwatches");
   const customColorRow = document.getElementById("customColorRow");
   const customColorInput = document.getElementById("customColorInput");
+  const themeToggleDot = document.getElementById("themeToggleDot");
+  const themeToggleName = document.getElementById("themeToggleName");
   const formatButtons = document.querySelectorAll("#formatToggle .format-btn");
   const courtsInput = document.getElementById("courtsInput");
   const gamesToPlayInput = document.getElementById("gamesToPlayInput");
@@ -1518,6 +1538,11 @@
     });
     customColorRow.style.display = config.theme === "custom" ? "flex" : "none";
     customColorInput.value = config.customColor;
+
+    const activeTheme = THEMES.find((t) => t.key === config.theme) || THEMES[0];
+    const activeColor = config.theme === "custom" ? config.customColor : activeTheme.swatch;
+    themeToggleDot.style.background = activeColor;
+    themeToggleName.textContent = activeTheme.name;
   }
 
   customColorInput.addEventListener("input", () => {
