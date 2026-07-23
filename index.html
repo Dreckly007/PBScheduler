@@ -586,7 +586,7 @@
     cursor: pointer;
   }
   .session-links a:hover { text-decoration: underline; }
-  .session-links a.active { text-decoration: underline; font-weight: 800; }
+  .dropdown-toggle.active { background: var(--green); color: var(--on-accent); border-color: var(--green); }
 
   .info-bar {
     background: var(--green-pale);
@@ -702,6 +702,22 @@
     text-align: center;
     font-size: 0.95rem;
   }
+  .outline-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .roster-confirm-row { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .roster-update-btn {
+    width: 100%;
+    background: var(--green);
+    color: var(--on-accent);
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .roster-update-btn:hover { background: var(--green-dark); }
+  .roster-update-btn:disabled { background: #d9c79a; cursor: not-allowed; opacity: 0.7; }
 
   .panel {
     background: #fff;
@@ -966,21 +982,29 @@
         <h2 id="roundHeader">Round 1 / 1</h2>
         <div class="session-links">
           <a id="editPlayersLink">Edit players</a>
-          <a id="swapPlayersLink">Swap players</a>
           <a id="startOverLink">Start Over</a>
         </div>
       </div>
 
-      <div class="dropdown no-print" id="rosterDropdown">
-        <button class="dropdown-toggle" data-target="rosterDropdown">
-          Add / Remove Players <span class="arrow">▾</span>
-        </button>
-        <div class="dropdown-panel">
-          <div class="inline-form">
-            <input type="text" id="rosterAddInput" placeholder="Add player name..." />
-            <button class="small-btn add" id="rosterAddBtn">Add</button>
+      <div class="dropdown-row">
+        <div class="dropdown no-print" id="rosterDropdown">
+          <button class="dropdown-toggle" data-target="rosterDropdown">
+            Add / Remove Players <span class="arrow">▾</span>
+          </button>
+          <div class="dropdown-panel">
+            <div class="inline-form">
+              <input type="text" id="rosterAddInput" placeholder="Add player name..." />
+              <button class="small-btn add" id="rosterAddBtn">Add</button>
+            </div>
+            <div class="chips" id="rosterChips"></div>
+            <div class="roster-confirm-row">
+              <button class="roster-update-btn" id="rosterUpdateBtn">Update remaining rounds</button>
+              <button class="outline-btn" id="rosterCancelBtn">Cancel changes</button>
+            </div>
           </div>
-          <div class="chips" id="rosterChips"></div>
+        </div>
+        <div class="dropdown no-print">
+          <button class="dropdown-toggle" id="swapPlayersLink">Swap players</button>
         </div>
       </div>
 
@@ -1031,7 +1055,7 @@
         </div>
         <div class="modal-actions">
           <button class="modal-btn primary" id="swapThisRoundBtn">This round only</button>
-          <button class="modal-btn outline" id="swapGoingForwardBtn">This round onward</button>
+          <button class="modal-btn outline" id="swapGoingForwardBtn">Update remaining rounds</button>
           <button class="modal-btn cancel" id="swapCancelBtn">Cancel</button>
         </div>
       </div>
@@ -1100,6 +1124,7 @@
   let swapModeActive = false;
   let swapSelection = [];
   let pendingSwap = null;
+  let pendingRoster = [];
   let timerSeconds = 0;
   let timerInterval = null;
 
@@ -1155,6 +1180,8 @@
   const rosterChips = document.getElementById("rosterChips");
   const rosterAddInput = document.getElementById("rosterAddInput");
   const rosterAddBtn = document.getElementById("rosterAddBtn");
+  const rosterUpdateBtn = document.getElementById("rosterUpdateBtn");
+  const rosterCancelBtn = document.getElementById("rosterCancelBtn");
   const infoBar = document.getElementById("infoBar");
   const timerDisplay = document.getElementById("timerDisplay");
   const timerStartBtn = document.getElementById("timerStartBtn");
@@ -1438,6 +1465,7 @@
         }
         currentSession = session;
         currentRoundIndex = 0;
+        pendingRoster = currentSession.players.slice();
         showSessionView();
         renderAll();
       });
@@ -1457,7 +1485,7 @@
     });
   }
 
-  document.querySelectorAll(".dropdown-toggle").forEach((btn) => {
+  document.querySelectorAll(".dropdown-toggle[data-target]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const dropdown = document.getElementById(btn.dataset.target);
       const isOpen = dropdown.classList.contains("open");
@@ -1903,9 +1931,15 @@
     renderAll();
   }
 
+  function rostersEqual(a, b) {
+    if (a.length !== b.length) return false;
+    const setB = new Set(b);
+    return a.every((n) => setB.has(n));
+  }
+
   function renderRosterChips() {
     rosterChips.innerHTML = "";
-    currentSession.players.forEach((name) => {
+    pendingRoster.forEach((name) => {
       const chip = document.createElement("div");
       chip.className = "chip";
       const span = document.createElement("span");
@@ -1918,22 +1952,27 @@
       chip.appendChild(btn);
       rosterChips.appendChild(chip);
     });
+    const hasChanges = !rostersEqual(pendingRoster, currentSession.players);
+    rosterUpdateBtn.disabled = !hasChanges;
+    rosterCancelBtn.disabled = !hasChanges;
   }
 
   function addPlayerMidSession(name) {
     name = name.trim();
     if (!name) return;
-    if (currentSession.players.some((p) => p.toLowerCase() === name.toLowerCase())) return;
-    regenerateRemainingRounds([...currentSession.players, name]);
+    if (pendingRoster.some((p) => p.toLowerCase() === name.toLowerCase())) return;
+    pendingRoster.push(name);
+    renderRosterChips();
   }
 
   function removePlayerMidSession(name) {
     const min = currentSession.config.format === "singles" ? 2 : 4;
-    if (currentSession.players.length - 1 < min) {
+    if (pendingRoster.length - 1 < min) {
       alert(`Need at least ${min} players to keep playing.`);
       return;
     }
-    regenerateRemainingRounds(currentSession.players.filter((p) => p !== name));
+    pendingRoster = pendingRoster.filter((p) => p !== name);
+    renderRosterChips();
   }
 
   function swapThisRoundOnly(nameA, nameB) {
@@ -1962,6 +2001,16 @@
     if (e.key === "Enter") submitRosterAdd();
   });
   rosterAddBtn.addEventListener("click", submitRosterAdd);
+
+  rosterUpdateBtn.addEventListener("click", () => {
+    if (rostersEqual(pendingRoster, currentSession.players)) return;
+    regenerateRemainingRounds(pendingRoster.slice());
+    pendingRoster = currentSession.players.slice();
+  });
+  rosterCancelBtn.addEventListener("click", () => {
+    pendingRoster = currentSession.players.slice();
+    renderRosterChips();
+  });
 
   function showSetupView() {
     stopTimer();
@@ -2330,6 +2379,7 @@
       maxRoundReached: 0,
     };
     currentRoundIndex = 0;
+    pendingRoster = currentSession.players.slice();
     pastSessions.push(currentSession);
     save(STORAGE.sessions, pastSessions);
     renderSessionsPanel();
