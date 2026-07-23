@@ -610,6 +610,33 @@
   .timer-btn { padding: 10px 26px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.95rem; }
   .timer-btn.start { background: var(--green); color: var(--on-accent); border: none; }
   .timer-btn.reset { background: #fff; color: var(--text); border: 1px solid var(--card-border); }
+  .timer-btn.fullscreen { background: var(--green-pale); color: var(--green-dark); border: 1px solid var(--green-pale-border); }
+  .timer-sound-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 14px;
+    font-size: 0.88rem;
+    color: var(--muted);
+  }
+  .timer-sound-row select {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+    background: #fff;
+    color: var(--text);
+    font-size: 0.88rem;
+  }
+  .timer-sound-test {
+    background: none;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--text);
+  }
 
   .timer-fullscreen {
     position: fixed;
@@ -620,16 +647,17 @@
     align-items: center;
     justify-content: center;
     z-index: 60;
-    padding: 24px;
+    padding: 12px;
   }
   .timer-fullscreen-display {
-    font-size: clamp(4rem, 22vw, 14rem);
+    font-size: min(32vw, 46vh, 22rem);
     font-weight: 800;
     color: var(--green-dark);
     line-height: 1;
+    white-space: nowrap;
     cursor: pointer;
   }
-  .timer-fullscreen-buttons { display: flex; gap: 16px; margin-top: 32px; }
+  .timer-fullscreen-buttons { display: flex; gap: 16px; margin-top: 24px; }
   .timer-fullscreen-buttons .timer-btn { font-size: 1.2rem; padding: 16px 36px; }
   .timer-fullscreen-exit {
     position: absolute;
@@ -1069,6 +1097,17 @@
         <div class="timer-buttons">
           <button class="timer-btn start" id="timerStartBtn">Start</button>
           <button class="timer-btn reset" id="timerResetBtn">Reset</button>
+          <button class="timer-btn fullscreen" id="timerFullscreenBtn">Full screen</button>
+        </div>
+        <div class="timer-sound-row">
+          <label for="timerSoundSelect">Sound</label>
+          <select id="timerSoundSelect">
+            <option value="beep">Beep</option>
+            <option value="buzzer">Buzzer</option>
+            <option value="chime">Chime</option>
+            <option value="none">None</option>
+          </select>
+          <button class="timer-sound-test" id="timerSoundTestBtn">🔊 Test</button>
         </div>
       </div>
 
@@ -1179,6 +1218,7 @@
     courtLabels: ["1"],
     theme: "cornish-gold",
     customColor: "#b8860b",
+    timerSound: "beep",
     schemaVersion: CONFIG_SCHEMA_VERSION,
   });
   config.gamesToPlay = config.gamesToPlay ?? 0;
@@ -1187,6 +1227,7 @@
   config.customColor = config.customColor || "#b8860b";
   config.winByTwo = config.winByTwo ?? false;
   config.format = config.format === "singles" ? "singles" : "doubles";
+  config.timerSound = config.timerSound || "beep";
   if ((config.schemaVersion || 1) < CONFIG_SCHEMA_VERSION) {
     // One-time migration: browsers with settings saved before the
     // "games to play" mode existed get bumped onto the new defaults.
@@ -1284,6 +1325,9 @@
   const timerFullscreenPauseBtn = document.getElementById("timerFullscreenPauseBtn");
   const timerFullscreenResetBtn = document.getElementById("timerFullscreenResetBtn");
   const timerFullscreenExitBtn = document.getElementById("timerFullscreenExitBtn");
+  const timerFullscreenBtn = document.getElementById("timerFullscreenBtn");
+  const timerSoundSelect = document.getElementById("timerSoundSelect");
+  const timerSoundTestBtn = document.getElementById("timerSoundTestBtn");
   const courtsContainer = document.getElementById("courtsContainer");
   const restingBar = document.getElementById("restingBar");
   const prevBtn = document.getElementById("prevBtn");
@@ -1300,6 +1344,7 @@
   timeAvailableHoursInput.value = Math.floor(config.timeAvailable / 60);
   timeAvailableMinutesInput.value = config.timeAvailable % 60;
   targetScoreInput.value = config.targetScore;
+  timerSoundSelect.value = config.timerSound;
 
   // Estimated minutes for a game played to a given target score.
   // Anchored to known reference points (7->8, 9->12, 11->15, 15->20 mins,
@@ -2265,12 +2310,60 @@
     timerFullscreen.style.display = "none";
   }
 
+  let audioCtx = null;
+  function ensureAudioContext() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+
+  function playTone(freq, startTime, duration, type, gainValue) {
+    const ctx = ensureAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(gainValue, ctx.currentTime + startTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime + startTime);
+    osc.stop(ctx.currentTime + startTime + duration);
+  }
+
+  const TIMER_SOUNDS = {
+    none: () => {},
+    beep: () => playTone(880, 0, 0.3, "sine", 0.3),
+    buzzer: () => {
+      playTone(180, 0, 0.45, "sawtooth", 0.35);
+      playTone(180, 0.5, 0.45, "sawtooth", 0.35);
+    },
+    chime: () => {
+      playTone(660, 0, 0.25, "sine", 0.25);
+      playTone(880, 0.25, 0.45, "sine", 0.25);
+    },
+  };
+
+  function playTimerSound() {
+    (TIMER_SOUNDS[config.timerSound] || TIMER_SOUNDS.beep)();
+  }
+
+  timerSoundSelect.addEventListener("change", () => {
+    config.timerSound = timerSoundSelect.value;
+    save(STORAGE.config, config);
+  });
+  timerSoundTestBtn.addEventListener("click", () => {
+    ensureAudioContext();
+    (TIMER_SOUNDS[timerSoundSelect.value] || TIMER_SOUNDS.beep)();
+  });
+
   timerToggleBtn.addEventListener("click", () => {
     const showing = timerSection.style.display !== "none";
     timerSection.style.display = showing ? "none" : "block";
   });
 
   function toggleTimerRunning() {
+    ensureAudioContext();
     if (timerInterval) {
       stopTimer();
       return;
@@ -2281,6 +2374,7 @@
     timerInterval = setInterval(() => {
       if (timerSeconds <= 0) {
         stopTimer();
+        playTimerSound();
         return;
       }
       timerSeconds -= 1;
@@ -2293,6 +2387,7 @@
   timerFullscreenResetBtn.addEventListener("click", resetTimer);
   timerFullscreenExitBtn.addEventListener("click", closeTimerFullscreen);
   timerFullscreenDisplay.addEventListener("click", closeTimerFullscreen);
+  timerFullscreenBtn.addEventListener("click", openTimerFullscreen);
 
   function updateSessionInStorage() {
     const idx = pastSessions.findIndex((s) => s.id === currentSession.id);
