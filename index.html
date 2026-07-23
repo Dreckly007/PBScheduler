@@ -611,6 +611,39 @@
   .timer-btn.start { background: var(--green); color: var(--on-accent); border: none; }
   .timer-btn.reset { background: #fff; color: var(--text); border: 1px solid var(--card-border); }
 
+  .timer-fullscreen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 60;
+    padding: 24px;
+  }
+  .timer-fullscreen-display {
+    font-size: clamp(4rem, 22vw, 14rem);
+    font-weight: 800;
+    color: var(--green-dark);
+    line-height: 1;
+    cursor: pointer;
+  }
+  .timer-fullscreen-buttons { display: flex; gap: 16px; margin-top: 32px; }
+  .timer-fullscreen-buttons .timer-btn { font-size: 1.2rem; padding: 16px 36px; }
+  .timer-fullscreen-exit {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 10px;
+  }
+
   .court-card {
     border: 2px solid var(--green);
     border-radius: 14px;
@@ -1030,7 +1063,8 @@
 
       <div class="info-bar" id="infoBar"></div>
 
-      <div class="timer-section no-print">
+      <button class="outline-btn no-print" id="timerToggleBtn">Timer</button>
+      <div class="timer-section no-print" id="timerSection" style="display:none;">
         <div class="timer-display" id="timerDisplay">10:00</div>
         <div class="timer-buttons">
           <button class="timer-btn start" id="timerStartBtn">Start</button>
@@ -1094,6 +1128,15 @@
           <button class="modal-btn outline" id="rosterUpdateRemainingBtn">Update remaining rounds</button>
           <button class="modal-btn cancel" id="rosterConfirmCancelBtn">Cancel</button>
         </div>
+      </div>
+    </div>
+
+    <div class="timer-fullscreen no-print" id="timerFullscreen" style="display:none;">
+      <button class="timer-fullscreen-exit" id="timerFullscreenExitBtn">✕ Exit</button>
+      <div class="timer-fullscreen-display" id="timerFullscreenDisplay">10:00</div>
+      <div class="timer-fullscreen-buttons">
+        <button class="timer-btn start" id="timerFullscreenPauseBtn">Pause</button>
+        <button class="timer-btn reset" id="timerFullscreenResetBtn">Reset</button>
       </div>
     </div>
   </div>
@@ -1231,9 +1274,16 @@
   const rosterUpdateBtn = document.getElementById("rosterUpdateBtn");
   const rosterCancelBtn = document.getElementById("rosterCancelBtn");
   const infoBar = document.getElementById("infoBar");
+  const timerToggleBtn = document.getElementById("timerToggleBtn");
+  const timerSection = document.getElementById("timerSection");
   const timerDisplay = document.getElementById("timerDisplay");
   const timerStartBtn = document.getElementById("timerStartBtn");
   const timerResetBtn = document.getElementById("timerResetBtn");
+  const timerFullscreen = document.getElementById("timerFullscreen");
+  const timerFullscreenDisplay = document.getElementById("timerFullscreenDisplay");
+  const timerFullscreenPauseBtn = document.getElementById("timerFullscreenPauseBtn");
+  const timerFullscreenResetBtn = document.getElementById("timerFullscreenResetBtn");
+  const timerFullscreenExitBtn = document.getElementById("timerFullscreenExitBtn");
   const courtsContainer = document.getElementById("courtsContainer");
   const restingBar = document.getElementById("restingBar");
   const prevBtn = document.getElementById("prevBtn");
@@ -2174,6 +2224,7 @@
 
   function showSetupView() {
     stopTimer();
+    closeTimerFullscreen();
     setupView.style.display = "block";
     sessionView.style.display = "none";
     syncFormatButtons();
@@ -2189,10 +2240,12 @@
       timerInterval = null;
     }
     timerStartBtn.textContent = "Start";
+    timerFullscreenPauseBtn.textContent = "Start";
   }
 
   function resetTimer() {
     stopTimer();
+    closeTimerFullscreen();
     timerSeconds = (currentSession ? currentSession.config.gameLength : 10) * 60;
     updateTimerDisplay();
   }
@@ -2200,15 +2253,31 @@
   function updateTimerDisplay() {
     const m = Math.floor(timerSeconds / 60);
     const s = timerSeconds % 60;
-    timerDisplay.textContent = `${m}:${String(s).padStart(2, "0")}`;
+    const text = `${m}:${String(s).padStart(2, "0")}`;
+    timerDisplay.textContent = text;
+    timerFullscreenDisplay.textContent = text;
   }
 
-  timerStartBtn.addEventListener("click", () => {
+  function openTimerFullscreen() {
+    timerFullscreen.style.display = "flex";
+  }
+  function closeTimerFullscreen() {
+    timerFullscreen.style.display = "none";
+  }
+
+  timerToggleBtn.addEventListener("click", () => {
+    const showing = timerSection.style.display !== "none";
+    timerSection.style.display = showing ? "none" : "block";
+  });
+
+  function toggleTimerRunning() {
     if (timerInterval) {
       stopTimer();
       return;
     }
     timerStartBtn.textContent = "Pause";
+    timerFullscreenPauseBtn.textContent = "Pause";
+    openTimerFullscreen();
     timerInterval = setInterval(() => {
       if (timerSeconds <= 0) {
         stopTimer();
@@ -2217,8 +2286,13 @@
       timerSeconds -= 1;
       updateTimerDisplay();
     }, 1000);
-  });
+  }
+  timerStartBtn.addEventListener("click", toggleTimerRunning);
+  timerFullscreenPauseBtn.addEventListener("click", toggleTimerRunning);
   timerResetBtn.addEventListener("click", resetTimer);
+  timerFullscreenResetBtn.addEventListener("click", resetTimer);
+  timerFullscreenExitBtn.addEventListener("click", closeTimerFullscreen);
+  timerFullscreenDisplay.addEventListener("click", closeTimerFullscreen);
 
   function updateSessionInStorage() {
     const idx = pastSessions.findIndex((s) => s.id === currentSession.id);
