@@ -586,6 +586,7 @@
     cursor: pointer;
   }
   .session-links a:hover { text-decoration: underline; }
+  .session-links a.active { text-decoration: underline; font-weight: 800; }
 
   .info-bar {
     background: var(--green-pale);
@@ -758,6 +759,45 @@
   .game-pill .name { font-weight: 700; }
   .game-pill .count { background: var(--green); color: var(--on-accent); border-radius: 999px; padding: 2px 10px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
 
+  .swap-mode .team-cell, .swap-mode .resting-pill { cursor: pointer; }
+  .swap-selected { box-shadow: inset 0 0 0 3px rgba(0,0,0,0.55); }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .modal-card {
+    background: #fff;
+    color: var(--text);
+    border: 2px solid var(--green);
+    border-radius: 14px;
+    padding: 20px;
+    max-width: 360px;
+    width: 100%;
+  }
+  .modal-title { font-weight: 800; font-size: 1.1rem; margin-bottom: 10px; color: var(--green-dark); }
+  .modal-body { font-size: 0.95rem; margin-bottom: 12px; }
+  .modal-note {
+    font-size: 0.82rem;
+    color: var(--green-dark);
+    background: var(--green-pale);
+    border: 1px solid var(--green-pale-border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 14px;
+  }
+  .modal-actions { display: flex; flex-direction: column; gap: 10px; }
+  .modal-btn { padding: 14px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; cursor: pointer; border: none; }
+  .modal-btn.primary { background: var(--green); color: var(--on-accent); }
+  .modal-btn.outline { background: #fff; color: var(--green-dark); border: 1px solid var(--green-pale-border); }
+  .modal-btn.cancel { background: #fff; color: var(--muted); border: 1px solid var(--card-border); }
+
   @media (max-width: 480px) {
     .config-grid { grid-template-columns: 1fr 1fr; }
     .config-grid .or-divider { grid-column: 1 / -1; }
@@ -926,6 +966,7 @@
         <h2 id="roundHeader">Round 1 / 1</h2>
         <div class="session-links">
           <a id="editPlayersLink">Edit players</a>
+          <a id="swapPlayersLink">Swap players</a>
           <a id="startOverLink">Start Over</a>
         </div>
       </div>
@@ -978,6 +1019,21 @@
       <div class="panel">
         <div class="panel-header"><span>Games Played</span></div>
         <div class="games-grid" id="gamesGrid"></div>
+      </div>
+    </div>
+
+    <div class="modal-overlay no-print" id="swapConfirmOverlay" style="display:none;">
+      <div class="modal-card">
+        <div class="modal-title">Swap players?</div>
+        <div class="modal-body" id="swapConfirmBody"></div>
+        <div class="modal-note" id="swapConfirmScoreNote" style="display:none;">
+          This round already has a score entered — scores stay with the court, so they won't follow the swapped players.
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn primary" id="swapThisRoundBtn">This round only</button>
+          <button class="modal-btn outline" id="swapGoingForwardBtn">This round onward</button>
+          <button class="modal-btn cancel" id="swapCancelBtn">Cancel</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1041,6 +1097,9 @@
 
   let currentSession = null;
   let currentRoundIndex = 0;
+  let swapModeActive = false;
+  let swapSelection = [];
+  let pendingSwap = null;
   let timerSeconds = 0;
   let timerInterval = null;
 
@@ -1085,7 +1144,14 @@
 
   const roundHeader = document.getElementById("roundHeader");
   const editPlayersLink = document.getElementById("editPlayersLink");
+  const swapPlayersLink = document.getElementById("swapPlayersLink");
   const startOverLink = document.getElementById("startOverLink");
+  const swapConfirmOverlay = document.getElementById("swapConfirmOverlay");
+  const swapConfirmBody = document.getElementById("swapConfirmBody");
+  const swapConfirmScoreNote = document.getElementById("swapConfirmScoreNote");
+  const swapThisRoundBtn = document.getElementById("swapThisRoundBtn");
+  const swapGoingForwardBtn = document.getElementById("swapGoingForwardBtn");
+  const swapCancelBtn = document.getElementById("swapCancelBtn");
   const rosterChips = document.getElementById("rosterChips");
   const rosterAddInput = document.getElementById("rosterAddInput");
   const rosterAddBtn = document.getElementById("rosterAddBtn");
@@ -1775,6 +1841,42 @@
     return [...names];
   }
 
+  function findPlayerSlot(round, name) {
+    for (let courtIndex = 0; courtIndex < round.courts.length; courtIndex++) {
+      const court = round.courts[courtIndex];
+      let idx = court.teamA.indexOf(name);
+      if (idx !== -1) return { type: "court", courtIndex, team: "teamA", idx };
+      idx = court.teamB.indexOf(name);
+      if (idx !== -1) return { type: "court", courtIndex, team: "teamB", idx };
+    }
+    const sitIdx = round.sitOuts.indexOf(name);
+    if (sitIdx !== -1) return { type: "sitOut", idx: sitIdx };
+    return null;
+  }
+
+  function swapPlayersInRound(round, nameA, nameB) {
+    if (nameA === nameB) return false;
+    const slotA = findPlayerSlot(round, nameA);
+    const slotB = findPlayerSlot(round, nameB);
+    if (!slotA || !slotB) return false;
+    const write = (slot, name) => {
+      if (slot.type === "sitOut") round.sitOuts[slot.idx] = name;
+      else round.courts[slot.courtIndex][slot.team][slot.idx] = name;
+    };
+    write(slotA, nameB);
+    write(slotB, nameA);
+    return true;
+  }
+
+  function swapAffectsScoredCourt(round, nameA, nameB) {
+    return [nameA, nameB].some((name) => {
+      const slot = findPlayerSlot(round, name);
+      if (!slot || slot.type !== "court") return false;
+      const court = round.courts[slot.courtIndex];
+      return court.scoreA !== "" || court.scoreB !== "";
+    });
+  }
+
   function regenerateRemainingRounds(newRoster) {
     const s = currentSession;
     const frozenCount = (s.maxRoundReached ?? 0) + 1;
@@ -1832,6 +1934,24 @@
       return;
     }
     regenerateRemainingRounds(currentSession.players.filter((p) => p !== name));
+  }
+
+  function swapThisRoundOnly(nameA, nameB) {
+    const s = currentSession;
+    const round = s.rounds[currentRoundIndex];
+    if (!swapPlayersInRound(round, nameA, nameB)) return;
+    const combined = computeFairnessState(s.rounds, s.config.format);
+    s.maxPartner = Object.values(combined.partnerCount).reduce((m, v) => Math.max(m, v), 0);
+    s.maxOpponent = Object.values(combined.opponentCount).reduce((m, v) => Math.max(m, v), 0);
+    updateSessionInStorage();
+    renderAll();
+  }
+
+  function swapGoingForward(nameA, nameB) {
+    const s = currentSession;
+    const round = s.rounds[currentRoundIndex];
+    if (!swapPlayersInRound(round, nameA, nameB)) return;
+    regenerateRemainingRounds(s.players.slice());
   }
 
   function submitRosterAdd() {
@@ -1928,6 +2048,7 @@
   }
 
   function renderRound() {
+    resetSwapSelection();
     const s = currentSession;
     if (currentRoundIndex > (s.maxRoundReached ?? 0)) {
       s.maxRoundReached = currentRoundIndex;
@@ -1956,6 +2077,7 @@
         const cell = document.createElement("div");
         cell.className = "team-cell";
         cell.textContent = name;
+        cell.addEventListener("click", () => handlePlayerTap(name, cell));
         teamBox.appendChild(cell);
       });
       card.appendChild(teamBox);
@@ -2014,6 +2136,7 @@
         const pill = document.createElement("span");
         pill.className = "resting-pill";
         pill.textContent = name;
+        pill.addEventListener("click", () => handlePlayerTap(name, pill));
         restingBar.appendChild(pill);
       });
       restingBar.style.display = "flex";
@@ -2100,6 +2223,62 @@
   printBtn.addEventListener("click", () => window.print());
 
   editPlayersLink.addEventListener("click", showSetupView);
+
+  function resetSwapSelection() {
+    swapSelection.forEach(({ el }) => el.classList.remove("swap-selected"));
+    swapSelection = [];
+  }
+
+  function toggleSwapMode() {
+    swapModeActive = !swapModeActive;
+    resetSwapSelection();
+    courtsContainer.classList.toggle("swap-mode", swapModeActive);
+    restingBar.classList.toggle("swap-mode", swapModeActive);
+    swapPlayersLink.classList.toggle("active", swapModeActive);
+  }
+  swapPlayersLink.addEventListener("click", toggleSwapMode);
+
+  function openSwapConfirm(nameA, nameB) {
+    pendingSwap = { nameA, nameB };
+    swapConfirmBody.textContent = `Swap ${nameA} and ${nameB}?`;
+    const round = currentSession.rounds[currentRoundIndex];
+    swapConfirmScoreNote.style.display = swapAffectsScoredCourt(round, nameA, nameB) ? "block" : "none";
+    swapConfirmOverlay.style.display = "flex";
+  }
+
+  function closeSwapConfirm() {
+    swapConfirmOverlay.style.display = "none";
+    pendingSwap = null;
+    resetSwapSelection();
+  }
+
+  function handlePlayerTap(name, el) {
+    if (!swapModeActive) return;
+    const existingIdx = swapSelection.findIndex((s) => s.name === name);
+    if (existingIdx !== -1) {
+      swapSelection[existingIdx].el.classList.remove("swap-selected");
+      swapSelection.splice(existingIdx, 1);
+      return;
+    }
+    if (swapSelection.length === 2) {
+      swapSelection.shift().el.classList.remove("swap-selected");
+    }
+    el.classList.add("swap-selected");
+    swapSelection.push({ name, el });
+    if (swapSelection.length === 2) openSwapConfirm(swapSelection[0].name, swapSelection[1].name);
+  }
+
+  swapThisRoundBtn.addEventListener("click", () => {
+    const { nameA, nameB } = pendingSwap;
+    closeSwapConfirm();
+    swapThisRoundOnly(nameA, nameB);
+  });
+  swapGoingForwardBtn.addEventListener("click", () => {
+    const { nameA, nameB } = pendingSwap;
+    closeSwapConfirm();
+    swapGoingForward(nameA, nameB);
+  });
+  swapCancelBtn.addEventListener("click", closeSwapConfirm);
 
   startOverLink.addEventListener("click", () => {
     if (!confirm("Start over? This clears today's players list.")) return;
