@@ -780,20 +780,8 @@
   .swap-selected { box-shadow: inset 0 0 0 3px rgba(0,0,0,0.55); }
   .remove-marked { text-decoration: line-through; opacity: 0.55; }
 
-  .roster-mode-row { display: flex; gap: 8px; margin-bottom: 10px; }
-  .roster-mode-btn {
-    flex: 1;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid var(--green-pale-border);
-    background: var(--green-pale);
-    color: var(--green-dark);
-    font-weight: 700;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
-  .roster-mode-btn.active { background: var(--green); color: var(--on-accent); border-color: var(--green); }
   .remove-mode-hint { font-size: 0.85rem; color: var(--green-dark); margin-bottom: 8px; }
+  #rosterStagingPanel { border-radius: 10px; border-top: 1px solid var(--card-border); margin-top: 8px; }
 
   .modal-overlay {
     position: fixed;
@@ -1004,31 +992,28 @@
       </div>
 
       <div class="dropdown-row">
-        <div class="dropdown no-print" id="rosterDropdown">
-          <button class="dropdown-toggle" data-target="rosterDropdown">
-            Add / Remove Players <span class="arrow">▾</span>
-          </button>
-          <div class="dropdown-panel">
-            <div class="roster-mode-row">
-              <button class="roster-mode-btn" id="rosterAddModeBtn">Add</button>
-              <button class="roster-mode-btn" id="rosterRemoveModeBtn">Remove</button>
-            </div>
-            <div class="inline-form" id="rosterAddForm" style="display:none;">
-              <input type="text" id="rosterAddInput" placeholder="Add player name..." />
-              <button class="small-btn add" id="rosterAddBtn">Add</button>
-            </div>
-            <div class="remove-mode-hint" id="rosterRemoveHint" style="display:none;">
-              Tap a player on the court (or resting) below to remove them.
-            </div>
-            <div class="chips" id="rosterChips"></div>
-            <div class="roster-confirm-row">
-              <button class="roster-update-btn" id="rosterUpdateBtn">Apply changes</button>
-              <button class="outline-btn" id="rosterCancelBtn">Cancel changes</button>
-            </div>
-          </div>
+        <div class="dropdown no-print">
+          <button class="dropdown-toggle" id="rosterAddModeBtn">Add</button>
         </div>
         <div class="dropdown no-print">
-          <button class="dropdown-toggle" id="swapPlayersLink">Swap players</button>
+          <button class="dropdown-toggle" id="rosterRemoveModeBtn">Remove</button>
+        </div>
+        <div class="dropdown no-print">
+          <button class="dropdown-toggle" id="swapPlayersLink">Swap</button>
+        </div>
+      </div>
+      <div class="dropdown-panel no-print" id="rosterStagingPanel" style="display:none;">
+        <div class="inline-form" id="rosterAddForm" style="display:none;">
+          <input type="text" id="rosterAddInput" placeholder="Add player name..." />
+          <button class="small-btn add" id="rosterAddBtn">Add</button>
+        </div>
+        <div class="remove-mode-hint" id="rosterRemoveHint" style="display:none;">
+          Tap a player on the court (or resting) below to remove them.
+        </div>
+        <div class="chips" id="rosterChips"></div>
+        <div class="roster-confirm-row">
+          <button class="roster-update-btn" id="rosterUpdateBtn">Apply changes</button>
+          <button class="outline-btn" id="rosterCancelBtn">Cancel changes</button>
         </div>
       </div>
 
@@ -1225,6 +1210,7 @@
   const rosterUpdateRemainingBtn = document.getElementById("rosterUpdateRemainingBtn");
   const rosterConfirmCancelBtn = document.getElementById("rosterConfirmCancelBtn");
   const rosterChips = document.getElementById("rosterChips");
+  const rosterStagingPanel = document.getElementById("rosterStagingPanel");
   const rosterAddModeBtn = document.getElementById("rosterAddModeBtn");
   const rosterRemoveModeBtn = document.getElementById("rosterRemoveModeBtn");
   const rosterAddForm = document.getElementById("rosterAddForm");
@@ -2029,6 +2015,14 @@
     const hasChanges = !rostersEqual(pendingRoster, currentSession.players);
     rosterUpdateBtn.disabled = !hasChanges;
     rosterCancelBtn.disabled = !hasChanges;
+    updateStagingPanelVisibility();
+  }
+
+  function updateStagingPanelVisibility() {
+    const addOpen = rosterAddForm.style.display !== "none";
+    const removeOpen = courtTapMode === "remove";
+    const hasChanges = !rostersEqual(pendingRoster, currentSession.players);
+    rosterStagingPanel.style.display = (addOpen || removeOpen || hasChanges) ? "block" : "none";
   }
 
   function addPlayerMidSession(name) {
@@ -2116,6 +2110,7 @@
     rosterAddForm.style.display = showing ? "none" : "flex";
     rosterAddModeBtn.classList.toggle("active", !showing);
     if (!showing) rosterAddInput.focus();
+    updateStagingPanelVisibility();
   }
   rosterAddModeBtn.addEventListener("click", toggleAddForm);
 
@@ -2125,6 +2120,7 @@
       rosterAddModeBtn.classList.remove("active");
     }
     setCourtTapMode(courtTapMode === "remove" ? null : "remove");
+    updateStagingPanelVisibility();
   }
   rosterRemoveModeBtn.addEventListener("click", toggleRemoveMode);
 
@@ -2132,6 +2128,7 @@
     rosterAddForm.style.display = "none";
     rosterAddModeBtn.classList.remove("active");
     setCourtTapMode(null);
+    updateStagingPanelVisibility();
   }
 
   rosterUpdateBtn.addEventListener("click", () => {
