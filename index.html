@@ -812,7 +812,7 @@
   .modal-btn { padding: 14px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; cursor: pointer; border: none; }
   .modal-btn.primary { background: var(--green); color: var(--on-accent); }
   .modal-btn.outline { background: #fff; color: var(--green-dark); border: 1px solid var(--green-pale-border); }
-  .modal-btn.cancel { background: #fff; color: var(--muted); border: 1px solid var(--card-border); }
+  .modal-btn.cancel { background: #fff; color: var(--text); border: 1px solid var(--card-border); }
 
   @media (max-width: 480px) {
     .config-grid { grid-template-columns: 1fr 1fr; }
@@ -998,7 +998,7 @@
             </div>
             <div class="chips" id="rosterChips"></div>
             <div class="roster-confirm-row">
-              <button class="roster-update-btn" id="rosterUpdateBtn">Update remaining rounds</button>
+              <button class="roster-update-btn" id="rosterUpdateBtn">Apply changes</button>
               <button class="outline-btn" id="rosterCancelBtn">Cancel changes</button>
             </div>
           </div>
@@ -1057,6 +1057,22 @@
           <button class="modal-btn primary" id="swapThisRoundBtn">This round only</button>
           <button class="modal-btn outline" id="swapGoingForwardBtn">Update remaining rounds</button>
           <button class="modal-btn cancel" id="swapCancelBtn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay no-print" id="rosterConfirmOverlay" style="display:none;">
+      <div class="modal-card">
+        <div class="modal-title">Apply roster changes?</div>
+        <div class="modal-body" id="rosterConfirmBody"></div>
+        <div class="modal-note" id="rosterConfirmScoreNote" style="display:none;">
+          "This game and all remaining games" regenerates starting with this round — any scores already entered from here on will be cleared.
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn primary" id="rosterThisGameBtn">This game only</button>
+          <button class="modal-btn outline" id="rosterAllRemainingBtn">This game and all remaining games</button>
+          <button class="modal-btn outline" id="rosterUpdateRemainingBtn">Update remaining rounds</button>
+          <button class="modal-btn cancel" id="rosterConfirmCancelBtn">Cancel</button>
         </div>
       </div>
     </div>
@@ -1177,6 +1193,13 @@
   const swapThisRoundBtn = document.getElementById("swapThisRoundBtn");
   const swapGoingForwardBtn = document.getElementById("swapGoingForwardBtn");
   const swapCancelBtn = document.getElementById("swapCancelBtn");
+  const rosterConfirmOverlay = document.getElementById("rosterConfirmOverlay");
+  const rosterConfirmBody = document.getElementById("rosterConfirmBody");
+  const rosterConfirmScoreNote = document.getElementById("rosterConfirmScoreNote");
+  const rosterThisGameBtn = document.getElementById("rosterThisGameBtn");
+  const rosterAllRemainingBtn = document.getElementById("rosterAllRemainingBtn");
+  const rosterUpdateRemainingBtn = document.getElementById("rosterUpdateRemainingBtn");
+  const rosterConfirmCancelBtn = document.getElementById("rosterConfirmCancelBtn");
   const rosterChips = document.getElementById("rosterChips");
   const rosterAddInput = document.getElementById("rosterAddInput");
   const rosterAddBtn = document.getElementById("rosterAddBtn");
@@ -1905,9 +1928,15 @@
     });
   }
 
-  function regenerateRemainingRounds(newRoster) {
+  function roundsHaveScoresFrom(rounds, fromIndex) {
+    return rounds.slice(fromIndex).some((round) =>
+      round.courts.some((c) => c.scoreA !== "" || c.scoreB !== "")
+    );
+  }
+
+  function regenerateRemainingRounds(newRoster, options = {}) {
     const s = currentSession;
-    const frozenCount = (s.maxRoundReached ?? 0) + 1;
+    const frozenCount = options.freezeAt ?? ((s.maxRoundReached ?? 0) + 1);
     const frozenRounds = s.rounds.slice(0, frozenCount);
     const tailCount = s.rounds.length - frozenCount;
 
@@ -1922,6 +1951,7 @@
     s.rounds = frozenRounds.concat(tailRounds);
     s.players = newRoster.slice();
     s.actualCourts = Math.max(...s.rounds.map((r) => r.courts.length));
+    if (options.resetMaxRoundReached) s.maxRoundReached = frozenCount;
 
     const combined = computeFairnessState(s.rounds, s.config.format);
     s.maxPartner = Object.values(combined.partnerCount).reduce((m, v) => Math.max(m, v), 0);
@@ -1935,6 +1965,22 @@
     if (a.length !== b.length) return false;
     const setB = new Set(b);
     return a.every((n) => setB.has(n));
+  }
+
+  function computeRosterDiff(committed, draft) {
+    const committedSet = new Set(committed);
+    const draftSet = new Set(draft);
+    return {
+      added: draft.filter((p) => !committedSet.has(p)),
+      removed: committed.filter((p) => !draftSet.has(p)),
+    };
+  }
+
+  function describeRosterDiff({ added, removed }) {
+    const parts = [];
+    if (removed.length) parts.push(`Remove: ${removed.join(", ")}.`);
+    if (added.length) parts.push(`Add: ${added.join(", ")}.`);
+    return parts.join(" ") || "No changes.";
   }
 
   function renderRosterChips() {
@@ -1975,6 +2021,40 @@
     renderRosterChips();
   }
 
+  function applyRosterThisGameOnly(diff) {
+    const s = currentSession;
+    const round = s.rounds[currentRoundIndex];
+    const removedSet = new Set(diff.removed);
+
+    diff.removed.forEach((name) => {
+      const slot = findPlayerSlot(round, name);
+      if (!slot) return;
+      if (slot.type === "sitOut") {
+        round.sitOuts.splice(slot.idx, 1);
+        return;
+      }
+      const court = round.courts[slot.courtIndex];
+      const replacementIdx = round.sitOuts.findIndex((p) => !removedSet.has(p));
+      if (replacementIdx !== -1) {
+        const [replacement] = round.sitOuts.splice(replacementIdx, 1);
+        court[slot.team][slot.idx] = replacement;
+      } else {
+        const remaining = [...court.teamA, ...court.teamB].filter((p) => p !== name);
+        round.sitOuts.push(...remaining);
+        round.courts.splice(slot.courtIndex, 1);
+      }
+    });
+
+    diff.added.forEach((name) => round.sitOuts.push(name));
+
+    const combined = computeFairnessState(s.rounds, s.config.format);
+    s.maxPartner = Object.values(combined.partnerCount).reduce((m, v) => Math.max(m, v), 0);
+    s.maxOpponent = Object.values(combined.opponentCount).reduce((m, v) => Math.max(m, v), 0);
+    updateSessionInStorage();
+    renderAll();
+    pendingRoster = currentSession.players.slice();
+  }
+
   function swapThisRoundOnly(nameA, nameB) {
     const s = currentSession;
     const round = s.rounds[currentRoundIndex];
@@ -2004,13 +2084,34 @@
 
   rosterUpdateBtn.addEventListener("click", () => {
     if (rostersEqual(pendingRoster, currentSession.players)) return;
-    regenerateRemainingRounds(pendingRoster.slice());
-    pendingRoster = currentSession.players.slice();
+    openRosterConfirm();
   });
   rosterCancelBtn.addEventListener("click", () => {
     pendingRoster = currentSession.players.slice();
     renderRosterChips();
   });
+
+  rosterThisGameBtn.addEventListener("click", () => {
+    const diff = computeRosterDiff(currentSession.players, pendingRoster);
+    closeRosterConfirm();
+    applyRosterThisGameOnly(diff);
+  });
+
+  rosterAllRemainingBtn.addEventListener("click", () => {
+    const newRoster = pendingRoster.slice();
+    closeRosterConfirm();
+    regenerateRemainingRounds(newRoster, { freezeAt: currentRoundIndex, resetMaxRoundReached: true });
+    pendingRoster = currentSession.players.slice();
+  });
+
+  rosterUpdateRemainingBtn.addEventListener("click", () => {
+    const newRoster = pendingRoster.slice();
+    closeRosterConfirm();
+    regenerateRemainingRounds(newRoster);
+    pendingRoster = currentSession.players.slice();
+  });
+
+  rosterConfirmCancelBtn.addEventListener("click", closeRosterConfirm);
 
   function showSetupView() {
     stopTimer();
@@ -2299,6 +2400,18 @@
     swapConfirmOverlay.style.display = "none";
     pendingSwap = null;
     resetSwapSelection();
+  }
+
+  function openRosterConfirm() {
+    const diff = computeRosterDiff(currentSession.players, pendingRoster);
+    rosterConfirmBody.textContent = describeRosterDiff(diff);
+    rosterConfirmScoreNote.style.display =
+      roundsHaveScoresFrom(currentSession.rounds, currentRoundIndex) ? "block" : "none";
+    rosterConfirmOverlay.style.display = "flex";
+  }
+
+  function closeRosterConfirm() {
+    rosterConfirmOverlay.style.display = "none";
   }
 
   function handlePlayerTap(name, el) {
