@@ -704,7 +704,9 @@
   }
   .outline-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .roster-confirm-row { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .roster-confirm-row { display: flex; gap: 8px; margin-top: 12px; }
+  .roster-confirm-row .roster-update-btn,
+  .roster-confirm-row .outline-btn { width: auto; flex: 1; margin-bottom: 0; }
   .roster-update-btn {
     width: 100%;
     background: var(--green);
