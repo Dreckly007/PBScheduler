@@ -1010,7 +1010,6 @@
         <div class="remove-mode-hint" id="rosterRemoveHint" style="display:none;">
           Tap a player on the court (or resting) below to remove them.
         </div>
-        <div class="chips" id="rosterChips"></div>
         <div class="roster-confirm-row">
           <button class="roster-update-btn" id="rosterUpdateBtn">Apply changes</button>
           <button class="outline-btn" id="rosterCancelBtn">Cancel changes</button>
@@ -1209,7 +1208,6 @@
   const rosterAllRemainingBtn = document.getElementById("rosterAllRemainingBtn");
   const rosterUpdateRemainingBtn = document.getElementById("rosterUpdateRemainingBtn");
   const rosterConfirmCancelBtn = document.getElementById("rosterConfirmCancelBtn");
-  const rosterChips = document.getElementById("rosterChips");
   const rosterStagingPanel = document.getElementById("rosterStagingPanel");
   const rosterAddModeBtn = document.getElementById("rosterAddModeBtn");
   const rosterRemoveModeBtn = document.getElementById("rosterRemoveModeBtn");
@@ -1997,21 +1995,7 @@
     return parts.join(" ") || "No changes.";
   }
 
-  function renderRosterChips() {
-    rosterChips.innerHTML = "";
-    pendingRoster.forEach((name) => {
-      const chip = document.createElement("div");
-      chip.className = "chip";
-      const span = document.createElement("span");
-      span.textContent = name;
-      const btn = document.createElement("button");
-      btn.textContent = "×";
-      btn.title = "Remove";
-      btn.addEventListener("click", () => removePlayerMidSession(name));
-      chip.appendChild(span);
-      chip.appendChild(btn);
-      rosterChips.appendChild(chip);
-    });
+  function updateRosterPanelState() {
     const hasChanges = !rostersEqual(pendingRoster, currentSession.players);
     rosterUpdateBtn.disabled = !hasChanges;
     rosterCancelBtn.disabled = !hasChanges;
@@ -2030,7 +2014,7 @@
     if (!name) return;
     if (pendingRoster.some((p) => p.toLowerCase() === name.toLowerCase())) return;
     pendingRoster.push(name);
-    renderRosterChips();
+    updateRosterPanelState();
   }
 
   function removePlayerMidSession(name) {
@@ -2040,7 +2024,7 @@
       return;
     }
     pendingRoster = pendingRoster.filter((p) => p !== name);
-    renderRosterChips();
+    updateRosterPanelState();
   }
 
   function applyRosterThisGameOnly(diff) {
@@ -2137,7 +2121,7 @@
   });
   rosterCancelBtn.addEventListener("click", () => {
     pendingRoster = currentSession.players.slice();
-    renderRosterChips();
+    updateRosterPanelState();
     resetRosterPanelUI();
   });
 
@@ -2409,7 +2393,7 @@
     renderRound();
     renderFullSchedule();
     renderGamesPlayed();
-    renderRosterChips();
+    updateRosterPanelState();
   }
 
   prevBtn.addEventListener("click", () => {
@@ -2513,7 +2497,7 @@
     if (el.classList.contains("remove-marked")) {
       pendingRoster.push(name);
       el.classList.remove("remove-marked");
-      renderRosterChips();
+      updateRosterPanelState();
     } else {
       const before = pendingRoster.length;
       removePlayerMidSession(name);
