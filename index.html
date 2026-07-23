@@ -387,6 +387,9 @@
     color: var(--muted);
     margin-top: 4px;
   }
+  .hours-mins-row { display: flex; align-items: center; gap: 4px; }
+  .hours-mins-row input[type="number"] { flex: 1; min-width: 0; padding: 12px 4px; text-align: center; }
+  .hours-mins-row .hint { margin-top: 0; white-space: nowrap; }
   .estimate-field { margin-top: 14px; }
   .estimate-box {
     background: #fff;
@@ -942,8 +945,13 @@
           <div class="hint">mins</div>
         </div>
         <div class="field">
-          <label for="timeAvailableInput">Time available</label>
-          <input type="number" id="timeAvailableInput" min="0" value="0" />
+          <label for="timeAvailableHoursInput">Time available</label>
+          <div class="hours-mins-row">
+            <input type="number" id="timeAvailableHoursInput" min="0" value="0" />
+            <span class="hint">hrs</span>
+            <input type="number" id="timeAvailableMinutesInput" min="0" max="59" value="0" />
+            <span class="hint">mins</span>
+          </div>
         </div>
       </div>
 
@@ -1172,10 +1180,11 @@
   const courtsInput = document.getElementById("courtsInput");
   const gamesToPlayInput = document.getElementById("gamesToPlayInput");
   const gameLengthInput = document.getElementById("gameLengthInput");
-  const timeAvailableInput = document.getElementById("timeAvailableInput");
+  const timeAvailableHoursInput = document.getElementById("timeAvailableHoursInput");
+  const timeAvailableMinutesInput = document.getElementById("timeAvailableMinutesInput");
   const gamesToPlayField = gamesToPlayInput.closest(".field");
   const gameLengthField = gameLengthInput.closest(".field");
-  const timeAvailableField = timeAvailableInput.closest(".field");
+  const timeAvailableField = timeAvailableHoursInput.closest(".field");
   const roundsEstimateField = document.getElementById("roundsEstimateField");
   const roundsEstimateNumber = document.getElementById("roundsEstimateNumber");
   const roundsEstimateReason = document.getElementById("roundsEstimateReason");
@@ -1236,7 +1245,8 @@
   courtsInput.value = config.courts;
   gamesToPlayInput.value = config.gamesToPlay;
   gameLengthInput.value = config.gameLength;
-  timeAvailableInput.value = config.timeAvailable;
+  timeAvailableHoursInput.value = Math.floor(config.timeAvailable / 60);
+  timeAvailableMinutesInput.value = config.timeAvailable % 60;
   targetScoreInput.value = config.targetScore;
 
   // Estimated minutes for a game played to a given target score.
@@ -1273,9 +1283,15 @@
     return (parseInt(gamesToPlayInput.value, 10) || 0) > 0;
   }
 
+  function getTimeAvailableMinutes() {
+    const hours = Math.max(0, parseInt(timeAvailableHoursInput.value, 10) || 0);
+    const minutes = Math.max(0, Math.min(59, parseInt(timeAvailableMinutesInput.value, 10) || 0));
+    return hours * 60 + minutes;
+  }
+
   function computeRounds() {
     const len = Math.max(0, parseInt(gameLengthInput.value, 10) || 0);
-    const time = Math.max(0, parseInt(timeAvailableInput.value, 10) || 0);
+    const time = getTimeAvailableMinutes();
     if (len <= 0 || time <= 0) return 0;
     return Math.max(1, Math.floor(time / (len + CHANGEOVER_MINUTES)));
   }
@@ -1300,7 +1316,7 @@
   function updateGamesModeUI() {
     const gamesToPlay = Math.max(0, parseInt(gamesToPlayInput.value, 10) || 0);
     const gameLength = Math.max(0, parseInt(gameLengthInput.value, 10) || 0);
-    const timeAvailable = Math.max(0, parseInt(timeAvailableInput.value, 10) || 0);
+    const timeAvailable = getTimeAvailableMinutes();
     const gamesMode = gamesToPlay > 0;
     const timeMode = !gamesMode && (gameLength > 0 || timeAvailable > 0);
 
@@ -1329,7 +1345,7 @@
     config.courts = Math.max(1, parseInt(courtsInput.value, 10) || 1);
     config.gamesToPlay = Math.max(0, parseInt(gamesToPlayInput.value, 10) || 0);
     config.gameLength = Math.max(0, parseInt(gameLengthInput.value, 10) || 0);
-    config.timeAvailable = Math.max(0, parseInt(timeAvailableInput.value, 10) || 0);
+    config.timeAvailable = getTimeAvailableMinutes();
     config.targetScore = Math.max(1, Math.min(21, parseInt(targetScoreInput.value, 10) || 11));
     save(STORAGE.config, config);
   }
@@ -1706,9 +1722,11 @@
     persistConfig();
     updateGamesModeUI();
   });
-  timeAvailableInput.addEventListener("input", () => {
-    persistConfig();
-    updateGamesModeUI();
+  [timeAvailableHoursInput, timeAvailableMinutesInput].forEach((input) => {
+    input.addEventListener("input", () => {
+      persistConfig();
+      updateGamesModeUI();
+    });
   });
   targetScoreInput.addEventListener("input", () => {
     persistConfig();
