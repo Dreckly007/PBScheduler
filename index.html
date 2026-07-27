@@ -230,6 +230,12 @@
     position: relative;
     z-index: 1;
   }
+  @media (min-width: 760px) {
+    .app { max-width: 920px; }
+  }
+  @media (min-width: 1100px) {
+    .app { max-width: 1240px; }
+  }
   .bg-watermark {
     position: absolute;
     top: 10px;
@@ -672,11 +678,21 @@
     padding: 10px;
   }
 
+  #courtsContainer {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  @media (min-width: 760px) {
+    #courtsContainer { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 1100px) {
+    #courtsContainer { grid-template-columns: repeat(3, 1fr); }
+  }
   .court-card {
     border: 2px solid var(--green);
     border-radius: 14px;
     padding: 16px 18px;
-    margin-bottom: 16px;
     background: #fff;
   }
   .court-title {
