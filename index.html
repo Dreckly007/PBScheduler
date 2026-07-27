@@ -1866,7 +1866,7 @@
     return [a, b].sort().join("|");
   }
 
-  function bestTeamSplit(group, partnerCount) {
+  function bestTeamSplit(group, partnerCount, opponentCount) {
     const splits = [
       { teamA: [group[0], group[1]], teamB: [group[2], group[3]] },
       { teamA: [group[0], group[2]], teamB: [group[1], group[3]] },
@@ -1875,9 +1875,16 @@
     let best = null;
     let bestScore = Infinity;
     for (const split of splits) {
-      const score =
-        (partnerCount[pairKey(split.teamA[0], split.teamA[1])] || 0) +
-        (partnerCount[pairKey(split.teamB[0], split.teamB[1])] || 0);
+      const partnerScore =
+        Math.pow(partnerCount[pairKey(split.teamA[0], split.teamA[1])] || 0, 2) +
+        Math.pow(partnerCount[pairKey(split.teamB[0], split.teamB[1])] || 0, 2);
+      let opponentScore = 0;
+      split.teamA.forEach((a) => {
+        split.teamB.forEach((b) => {
+          opponentScore += Math.pow(opponentCount[pairKey(a, b)] || 0, 2);
+        });
+      });
+      const score = partnerScore * 4 + opponentScore;
       if (score < bestScore) {
         bestScore = score;
         best = split;
@@ -1959,7 +1966,7 @@
 
       let bestGrouping = null;
       let bestScore = Infinity;
-      for (let attempt = 0; attempt < 150; attempt++) {
+      for (let attempt = 0; attempt < 300; attempt++) {
         const shuffled = shuffle(playing);
         const groups = [];
         for (let i = 0; i < actualCourts; i++) {
@@ -1968,9 +1975,9 @@
         const results = format === "singles"
           ? groups.map((g) => ({
               split: { teamA: [g[0]], teamB: [g[1]] },
-              score: opponentCount[pairKey(g[0], g[1])] || 0,
+              score: Math.pow(opponentCount[pairKey(g[0], g[1])] || 0, 2),
             }))
-          : groups.map((g) => bestTeamSplit(g, partnerCount));
+          : groups.map((g) => bestTeamSplit(g, partnerCount, opponentCount));
         const totalScore = results.reduce((sum, res) => sum + res.score, 0);
         if (totalScore < bestScore) {
           bestScore = totalScore;
