@@ -588,15 +588,6 @@
     margin-bottom: 14px;
   }
   .session-header h2 { margin: 0; color: var(--green-dark); font-size: 1.3rem; }
-  .session-links a {
-    color: var(--green);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.9rem;
-    margin-left: 14px;
-    cursor: pointer;
-  }
-  .session-links a:hover { text-decoration: underline; }
   .dropdown-toggle.active { background: var(--green); color: var(--on-accent); border-color: var(--green); }
 
   .info-bar {
@@ -1074,13 +1065,7 @@
     <div id="sessionView" style="display:none;">
       <div class="session-header">
         <h2 id="roundHeader">Round 1 / 1</h2>
-        <div class="session-links">
-          <a id="editPlayersLink">Edit players</a>
-          <a id="startOverLink">Start Over</a>
-        </div>
       </div>
-
-      <div class="info-bar" id="infoBar"></div>
 
       <div id="courtsContainer"></div>
 
@@ -1138,6 +1123,17 @@
 
       <button class="outline-btn no-print" id="printBtn">Print / Save as PDF</button>
       <button class="outline-btn no-print" id="regenerateBtn">Regenerate Schedule</button>
+
+      <div class="dropdown-row no-print">
+        <div class="dropdown">
+          <button class="dropdown-toggle" id="editPlayersLink">Edit players</button>
+        </div>
+        <div class="dropdown">
+          <button class="dropdown-toggle" id="startOverLink">Start Over</button>
+        </div>
+      </div>
+
+      <div class="info-bar" id="infoBar"></div>
 
       <div class="panel">
         <div class="panel-header">
