@@ -857,6 +857,19 @@
 
   .remove-mode-hint { font-size: 0.85rem; color: var(--green-dark); margin-bottom: 8px; }
   #rosterStagingPanel { border-radius: 10px; border-top: 1px solid var(--card-border); margin-top: 8px; }
+  .roster-courts-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: var(--green-pale);
+    border: 1px solid var(--green-pale-border);
+    border-radius: 10px;
+  }
+  .roster-courts-row label { font-weight: 700; color: var(--green-dark); font-size: 0.9rem; }
+  .roster-courts-row input { width: 70px; padding: 8px; text-align: center; }
 
   .modal-overlay {
     position: fixed;
@@ -1155,6 +1168,10 @@
           <button class="dropdown-toggle" id="swapPlayersLink">Swap Player Positions</button>
         </div>
       </div>
+      <div class="roster-courts-row no-print">
+        <label for="rosterCourtsInput">Courts available</label>
+        <input type="number" id="rosterCourtsInput" min="1" max="12" />
+      </div>
       <div class="dropdown-panel no-print" id="rosterStagingPanel" style="display:none;">
         <div class="inline-form" id="rosterAddForm" style="display:none;">
           <input type="text" id="rosterAddInput" placeholder="Add player name..." />
@@ -1319,6 +1336,7 @@
   let swapSelection = [];
   let pendingSwap = null;
   let pendingRoster = [];
+  let pendingCourts = 1;
   let timerSeconds = 0;
   let timerInterval = null;
 
@@ -1386,6 +1404,7 @@
   const rosterRemoveHint = document.getElementById("rosterRemoveHint");
   const rosterAddInput = document.getElementById("rosterAddInput");
   const rosterAddBtn = document.getElementById("rosterAddBtn");
+  const rosterCourtsInput = document.getElementById("rosterCourtsInput");
   const rosterUpdateBtn = document.getElementById("rosterUpdateBtn");
   const rosterCancelBtn = document.getElementById("rosterCancelBtn");
   const infoBar = document.getElementById("infoBar");
@@ -1691,7 +1710,7 @@
         }
         currentSession = session;
         currentRoundIndex = 0;
-        pendingRoster = currentSession.players.slice();
+        resetPendingRoster();
         showSessionView();
         renderAll();
       });
@@ -2212,6 +2231,14 @@
     const frozenRounds = s.rounds.slice(0, frozenCount);
     const tailCount = s.rounds.length - frozenCount;
 
+    if (options.newCourts != null && options.newCourts !== s.config.courts) {
+      s.config.courts = options.newCourts;
+      const labels = s.config.courtLabels.slice();
+      while (labels.length < s.config.courts) labels.push(String(labels.length + 1));
+      labels.length = s.config.courts;
+      s.config.courtLabels = labels;
+    }
+
     const state = computeFairnessState(frozenRounds, s.config.format);
     seedNewPlayers(state, newRoster, frozenCount);
 
@@ -2241,6 +2268,17 @@
     return a.every((n) => setB.has(n));
   }
 
+  function resetPendingRoster() {
+    pendingRoster = currentSession.players.slice();
+    pendingCourts = currentSession.config.courts;
+    rosterCourtsInput.value = pendingCourts;
+  }
+
+  rosterCourtsInput.addEventListener("input", () => {
+    pendingCourts = Math.max(1, Math.min(12, parseInt(rosterCourtsInput.value, 10) || 1));
+    updateRosterPanelState();
+  });
+
   function computeRosterDiff(committed, draft) {
     const committedSet = new Set(committed);
     const draftSet = new Set(draft);
@@ -2250,15 +2288,20 @@
     };
   }
 
-  function describeRosterDiff({ added, removed }) {
+  function describeRosterDiff({ added, removed }, courtsChange) {
     const parts = [];
     if (removed.length) parts.push(`Remove: ${removed.join(", ")}.`);
     if (added.length) parts.push(`Add: ${added.join(", ")}.`);
+    if (courtsChange) parts.push(`Courts: ${courtsChange.from} → ${courtsChange.to}.`);
     return parts.join(" ") || "No changes.";
   }
 
+  function hasPendingRosterChanges() {
+    return !rostersEqual(pendingRoster, currentSession.players) || pendingCourts !== currentSession.config.courts;
+  }
+
   function updateRosterPanelState() {
-    const hasChanges = !rostersEqual(pendingRoster, currentSession.players);
+    const hasChanges = hasPendingRosterChanges();
     rosterUpdateBtn.disabled = !hasChanges;
     rosterCancelBtn.disabled = !hasChanges;
     updateStagingPanelVisibility();
@@ -2267,8 +2310,7 @@
   function updateStagingPanelVisibility() {
     const addOpen = rosterAddForm.style.display !== "none";
     const removeOpen = courtTapMode === "remove";
-    const hasChanges = !rostersEqual(pendingRoster, currentSession.players);
-    rosterStagingPanel.style.display = (addOpen || removeOpen || hasChanges) ? "block" : "none";
+    rosterStagingPanel.style.display = (addOpen || removeOpen || hasPendingRosterChanges()) ? "block" : "none";
   }
 
   function addPlayerMidSession(name) {
@@ -2322,7 +2364,7 @@
     s.flipCount = countRoleFlips(s.rounds, s.config.format);
     updateSessionInStorage();
     renderAll();
-    pendingRoster = currentSession.players.slice();
+    resetPendingRoster();
   }
 
   function swapThisRoundOnly(nameA, nameB) {
@@ -2382,11 +2424,11 @@
   }
 
   rosterUpdateBtn.addEventListener("click", () => {
-    if (rostersEqual(pendingRoster, currentSession.players)) return;
+    if (rostersEqual(pendingRoster, currentSession.players) && pendingCourts === currentSession.config.courts) return;
     openRosterConfirm();
   });
   rosterCancelBtn.addEventListener("click", () => {
-    pendingRoster = currentSession.players.slice();
+    resetPendingRoster();
     updateRosterPanelState();
     resetRosterPanelUI();
   });
@@ -2400,17 +2442,19 @@
 
   rosterAllRemainingBtn.addEventListener("click", () => {
     const newRoster = pendingRoster.slice();
+    const newCourts = pendingCourts;
     closeRosterConfirm();
-    regenerateRemainingRounds(newRoster, { freezeAt: currentRoundIndex, resetMaxRoundReached: true });
-    pendingRoster = currentSession.players.slice();
+    regenerateRemainingRounds(newRoster, { freezeAt: currentRoundIndex, resetMaxRoundReached: true, newCourts });
+    resetPendingRoster();
     resetRosterPanelUI();
   });
 
   rosterUpdateRemainingBtn.addEventListener("click", () => {
     const newRoster = pendingRoster.slice();
+    const newCourts = pendingCourts;
     closeRosterConfirm();
-    regenerateRemainingRounds(newRoster);
-    pendingRoster = currentSession.players.slice();
+    regenerateRemainingRounds(newRoster, { newCourts });
+    resetPendingRoster();
     resetRosterPanelUI();
   });
 
@@ -2742,12 +2786,14 @@
     if (currentRoundIndex > 0) {
       currentRoundIndex -= 1;
       renderRound();
+      renderInfoBar();
     }
   });
   nextBtn.addEventListener("click", () => {
     if (currentRoundIndex < currentSession.rounds.length - 1) {
       currentRoundIndex += 1;
       renderRound();
+      renderInfoBar();
     }
   });
 
@@ -2838,9 +2884,12 @@
 
   function openRosterConfirm() {
     const diff = computeRosterDiff(currentSession.players, pendingRoster);
-    rosterConfirmBody.textContent = describeRosterDiff(diff);
+    const courtsChanged = pendingCourts !== currentSession.config.courts;
+    const courtsChange = courtsChanged ? { from: currentSession.config.courts, to: pendingCourts } : null;
+    rosterConfirmBody.textContent = describeRosterDiff(diff, courtsChange);
     rosterConfirmScoreNote.style.display =
       roundsHaveScoresFrom(currentSession.rounds, currentRoundIndex) ? "block" : "none";
+    rosterThisGameBtn.style.display = courtsChanged ? "none" : "";
     rosterConfirmOverlay.style.display = "flex";
   }
 
@@ -2944,7 +2993,7 @@
       maxRoundReached: 0,
     };
     currentRoundIndex = 0;
-    pendingRoster = currentSession.players.slice();
+    resetPendingRoster();
     pastSessions.push(currentSession);
     save(STORAGE.sessions, pastSessions);
     renderSessionsPanel();
