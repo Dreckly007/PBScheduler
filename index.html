@@ -1946,7 +1946,35 @@
     return names.slice().sort().join("|");
   }
 
-  function bestTeamSplit(group, partnerCount, opponentCount) {
+  function countRoleFlips(rounds, format) {
+    if (format === "singles") return 0;
+    const lastRole = {};
+    let flips = 0;
+    rounds.forEach((round) => {
+      const rolesThisRound = {};
+      round.courts.forEach(({ teamA, teamB }) => {
+        if (teamA.length === 2) {
+          rolesThisRound[pairKey(teamA[0], teamA[1])] = "partner";
+          rolesThisRound[pairKey(teamB[0], teamB[1])] = "partner";
+        }
+        teamA.forEach((a) => {
+          teamB.forEach((b) => {
+            rolesThisRound[pairKey(a, b)] = "opponent";
+          });
+        });
+      });
+      Object.keys(rolesThisRound).forEach((key) => {
+        const prev = lastRole[key];
+        if (prev && prev.round === round.round - 1 && prev.role !== rolesThisRound[key]) {
+          flips += 1;
+        }
+        lastRole[key] = { round: round.round, role: rolesThisRound[key] };
+      });
+    });
+    return flips;
+  }
+
+  function bestTeamSplit(group, partnerCount, opponentCount, lastPartnerRound, lastOpponentRound, currentRound) {
     const splits = [
       { teamA: [group[0], group[1]], teamB: [group[2], group[3]] },
       { teamA: [group[0], group[2]], teamB: [group[1], group[3]] },
@@ -1955,13 +1983,19 @@
     let best = null;
     let bestScore = Infinity;
     for (const split of splits) {
-      const partnerScore =
-        Math.pow(partnerCount[pairKey(split.teamA[0], split.teamA[1])] || 0, 2) +
-        Math.pow(partnerCount[pairKey(split.teamB[0], split.teamB[1])] || 0, 2);
+      const teamAKey = pairKey(split.teamA[0], split.teamA[1]);
+      const teamBKey = pairKey(split.teamB[0], split.teamB[1]);
+      let partnerScore =
+        Math.pow(partnerCount[teamAKey] || 0, 2) +
+        Math.pow(partnerCount[teamBKey] || 0, 2);
+      if (lastOpponentRound[teamAKey] === currentRound - 1) partnerScore += 50;
+      if (lastOpponentRound[teamBKey] === currentRound - 1) partnerScore += 50;
       let opponentScore = 0;
       split.teamA.forEach((a) => {
         split.teamB.forEach((b) => {
-          opponentScore += Math.pow(opponentCount[pairKey(a, b)] || 0, 2);
+          const k = pairKey(a, b);
+          opponentScore += Math.pow(opponentCount[k] || 0, 2);
+          if (lastPartnerRound[k] === currentRound - 1) opponentScore += 50;
         });
       });
       const score = partnerScore * 4 + opponentScore;
@@ -1977,6 +2011,8 @@
     const partnerCount = {};
     const opponentCount = {};
     const groupCount = {};
+    const lastPartnerRound = {};
+    const lastOpponentRound = {};
     const sitCount = {};
     const lastRestRound = {};
     rounds.forEach((round) => {
@@ -1990,6 +2026,8 @@
           const k2 = pairKey(teamB[0], teamB[1]);
           partnerCount[k1] = (partnerCount[k1] || 0) + 1;
           partnerCount[k2] = (partnerCount[k2] || 0) + 1;
+          lastPartnerRound[k1] = round.round - 1;
+          lastPartnerRound[k2] = round.round - 1;
           const gKey = groupKey([...teamA, ...teamB]);
           groupCount[gKey] = (groupCount[gKey] || 0) + 1;
         }
@@ -1997,11 +2035,12 @@
           teamB.forEach((b) => {
             const k = pairKey(a, b);
             opponentCount[k] = (opponentCount[k] || 0) + 1;
+            lastOpponentRound[k] = round.round - 1;
           });
         });
       });
     });
-    return { partnerCount, opponentCount, groupCount, sitCount, lastRestRound };
+    return { partnerCount, opponentCount, groupCount, lastPartnerRound, lastOpponentRound, sitCount, lastRestRound };
   }
 
   function seedNewPlayers(state, roster, frozenCount) {
@@ -2019,6 +2058,8 @@
     const partnerCount = seed ? { ...seed.partnerCount } : {};
     const opponentCount = seed ? { ...seed.opponentCount } : {};
     const groupCount = seed ? { ...seed.groupCount } : {};
+    const lastPartnerRound = seed ? { ...seed.lastPartnerRound } : {};
+    const lastOpponentRound = seed ? { ...seed.lastOpponentRound } : {};
     const sitCount = {};
     const lastRestRound = {};
     players.forEach((p) => {
@@ -2061,7 +2102,7 @@
               split: { teamA: [g[0]], teamB: [g[1]] },
               score: Math.pow(opponentCount[pairKey(g[0], g[1])] || 0, 2),
             }))
-          : groups.map((g) => bestTeamSplit(g, partnerCount, opponentCount));
+          : groups.map((g) => bestTeamSplit(g, partnerCount, opponentCount, lastPartnerRound, lastOpponentRound, r));
         let totalScore = results.reduce((sum, res) => sum + res.score, 0);
         if (format !== "singles") {
           groups.forEach((g) => {
@@ -2082,6 +2123,8 @@
           const key2 = pairKey(teamB[0], teamB[1]);
           partnerCount[key1] = (partnerCount[key1] || 0) + 1;
           partnerCount[key2] = (partnerCount[key2] || 0) + 1;
+          lastPartnerRound[key1] = r;
+          lastPartnerRound[key2] = r;
           const gKey = groupKey([...teamA, ...teamB]);
           groupCount[gKey] = (groupCount[gKey] || 0) + 1;
         }
@@ -2089,6 +2132,7 @@
           teamB.forEach((b) => {
             const k = pairKey(a, b);
             opponentCount[k] = (opponentCount[k] || 0) + 1;
+            lastOpponentRound[k] = r;
           });
         });
       });
@@ -2185,6 +2229,7 @@
     s.maxPartner = Object.values(combined.partnerCount).reduce((m, v) => Math.max(m, v), 0);
     s.maxOpponent = Object.values(combined.opponentCount).reduce((m, v) => Math.max(m, v), 0);
     s.maxGroup = Object.values(combined.groupCount).reduce((m, v) => Math.max(m, v), 0);
+    s.flipCount = countRoleFlips(s.rounds, s.config.format);
 
     updateSessionInStorage();
     renderAll();
@@ -2274,6 +2319,7 @@
     s.maxPartner = Object.values(combined.partnerCount).reduce((m, v) => Math.max(m, v), 0);
     s.maxOpponent = Object.values(combined.opponentCount).reduce((m, v) => Math.max(m, v), 0);
     s.maxGroup = Object.values(combined.groupCount).reduce((m, v) => Math.max(m, v), 0);
+    s.flipCount = countRoleFlips(s.rounds, s.config.format);
     updateSessionInStorage();
     renderAll();
     pendingRoster = currentSession.players.slice();
@@ -2287,6 +2333,7 @@
     s.maxPartner = Object.values(combined.partnerCount).reduce((m, v) => Math.max(m, v), 0);
     s.maxOpponent = Object.values(combined.opponentCount).reduce((m, v) => Math.max(m, v), 0);
     s.maxGroup = Object.values(combined.groupCount).reduce((m, v) => Math.max(m, v), 0);
+    s.flipCount = countRoleFlips(s.rounds, s.config.format);
     updateSessionInStorage();
     renderAll();
   }
@@ -2514,6 +2561,7 @@
     if (s.config.format !== "singles") statParts.push(`Max repeat partner: ${s.maxPartner}`);
     statParts.push(`Max repeat opponent: ${s.maxOpponent}`);
     if (s.config.format !== "singles") statParts.push(`Max repeat group: ${s.maxGroup}`);
+    if (s.config.format !== "singles") statParts.push(`Immediate re-match flips: ${s.flipCount}`);
     infoBar.textContent =
       `${formatLabel} · ${s.players.length} players · ${courtsNow} courts · ${gameDesc} · ` +
       `${s.rounds.length} rounds · ${avgActive} active each · ` +
@@ -2891,6 +2939,7 @@
       maxPartner,
       maxOpponent,
       maxGroup,
+      flipCount: countRoleFlips(rounds, config.format),
       rounds,
       maxRoundReached: 0,
     };
