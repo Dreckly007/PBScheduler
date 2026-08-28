@@ -1942,6 +1942,10 @@
     return [a, b].sort().join("|");
   }
 
+  function groupKey(names) {
+    return names.slice().sort().join("|");
+  }
+
   function bestTeamSplit(group, partnerCount, opponentCount) {
     const splits = [
       { teamA: [group[0], group[1]], teamB: [group[2], group[3]] },
@@ -1972,6 +1976,7 @@
   function computeFairnessState(rounds, format) {
     const partnerCount = {};
     const opponentCount = {};
+    const groupCount = {};
     const sitCount = {};
     const lastRestRound = {};
     rounds.forEach((round) => {
@@ -1985,6 +1990,8 @@
           const k2 = pairKey(teamB[0], teamB[1]);
           partnerCount[k1] = (partnerCount[k1] || 0) + 1;
           partnerCount[k2] = (partnerCount[k2] || 0) + 1;
+          const gKey = groupKey([...teamA, ...teamB]);
+          groupCount[gKey] = (groupCount[gKey] || 0) + 1;
         }
         teamA.forEach((a) => {
           teamB.forEach((b) => {
@@ -1994,7 +2001,7 @@
         });
       });
     });
-    return { partnerCount, opponentCount, sitCount, lastRestRound };
+    return { partnerCount, opponentCount, groupCount, sitCount, lastRestRound };
   }
 
   function seedNewPlayers(state, roster, frozenCount) {
@@ -2011,6 +2018,7 @@
     const startRound = seed ? seed.startRound : 0;
     const partnerCount = seed ? { ...seed.partnerCount } : {};
     const opponentCount = seed ? { ...seed.opponentCount } : {};
+    const groupCount = seed ? { ...seed.groupCount } : {};
     const sitCount = {};
     const lastRestRound = {};
     players.forEach((p) => {
@@ -2054,7 +2062,12 @@
               score: Math.pow(opponentCount[pairKey(g[0], g[1])] || 0, 2),
             }))
           : groups.map((g) => bestTeamSplit(g, partnerCount, opponentCount));
-        const totalScore = results.reduce((sum, res) => sum + res.score, 0);
+        let totalScore = results.reduce((sum, res) => sum + res.score, 0);
+        if (format !== "singles") {
+          groups.forEach((g) => {
+            totalScore += Math.pow(groupCount[groupKey(g)] || 0, 2) * 6;
+          });
+        }
         if (totalScore < bestScore) {
           bestScore = totalScore;
           bestGrouping = results;
@@ -2069,6 +2082,8 @@
           const key2 = pairKey(teamB[0], teamB[1]);
           partnerCount[key1] = (partnerCount[key1] || 0) + 1;
           partnerCount[key2] = (partnerCount[key2] || 0) + 1;
+          const gKey = groupKey([...teamA, ...teamB]);
+          groupCount[gKey] = (groupCount[gKey] || 0) + 1;
         }
         teamA.forEach((a) => {
           teamB.forEach((b) => {
@@ -2091,8 +2106,9 @@
 
     const maxPartner = Object.values(partnerCount).reduce((m, v) => Math.max(m, v), 0);
     const maxOpponent = Object.values(opponentCount).reduce((m, v) => Math.max(m, v), 0);
+    const maxGroup = Object.values(groupCount).reduce((m, v) => Math.max(m, v), 0);
 
-    return { rounds, actualCourts, maxPartner, maxOpponent };
+    return { rounds, actualCourts, maxPartner, maxOpponent, maxGroup };
   }
 
   function getAllPlayersEver(session) {
@@ -2168,6 +2184,7 @@
     const combined = computeFairnessState(s.rounds, s.config.format);
     s.maxPartner = Object.values(combined.partnerCount).reduce((m, v) => Math.max(m, v), 0);
     s.maxOpponent = Object.values(combined.opponentCount).reduce((m, v) => Math.max(m, v), 0);
+    s.maxGroup = Object.values(combined.groupCount).reduce((m, v) => Math.max(m, v), 0);
 
     updateSessionInStorage();
     renderAll();
@@ -2256,6 +2273,7 @@
     const combined = computeFairnessState(s.rounds, s.config.format);
     s.maxPartner = Object.values(combined.partnerCount).reduce((m, v) => Math.max(m, v), 0);
     s.maxOpponent = Object.values(combined.opponentCount).reduce((m, v) => Math.max(m, v), 0);
+    s.maxGroup = Object.values(combined.groupCount).reduce((m, v) => Math.max(m, v), 0);
     updateSessionInStorage();
     renderAll();
     pendingRoster = currentSession.players.slice();
@@ -2268,6 +2286,7 @@
     const combined = computeFairnessState(s.rounds, s.config.format);
     s.maxPartner = Object.values(combined.partnerCount).reduce((m, v) => Math.max(m, v), 0);
     s.maxOpponent = Object.values(combined.opponentCount).reduce((m, v) => Math.max(m, v), 0);
+    s.maxGroup = Object.values(combined.groupCount).reduce((m, v) => Math.max(m, v), 0);
     updateSessionInStorage();
     renderAll();
   }
@@ -2494,6 +2513,7 @@
     const statParts = [];
     if (s.config.format !== "singles") statParts.push(`Max repeat partner: ${s.maxPartner}`);
     statParts.push(`Max repeat opponent: ${s.maxOpponent}`);
+    if (s.config.format !== "singles") statParts.push(`Max repeat group: ${s.maxGroup}`);
     infoBar.textContent =
       `${formatLabel} · ${s.players.length} players · ${courtsNow} courts · ${gameDesc} · ` +
       `${s.rounds.length} rounds · ${avgActive} active each · ` +
@@ -2855,7 +2875,7 @@
       effectiveGameLength = config.gameLength;
     }
 
-    const { rounds, actualCourts, maxPartner, maxOpponent } = generateRounds(
+    const { rounds, actualCourts, maxPartner, maxOpponent, maxGroup } = generateRounds(
       todayPlayers, numRounds, config.courts, config.courtLabels, config.format
     );
     if (rounds.length === 0) {
@@ -2870,6 +2890,7 @@
       actualCourts,
       maxPartner,
       maxOpponent,
+      maxGroup,
       rounds,
       maxRoundReached: 0,
     };
