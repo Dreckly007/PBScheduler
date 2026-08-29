@@ -1100,6 +1100,13 @@
           </button>
           <div class="dropdown-panel" id="sessionsPanel"></div>
         </div>
+
+        <div class="dropdown" id="clubStatsDropdown">
+          <button class="dropdown-toggle" data-target="clubStatsDropdown">
+            Club stats <span class="arrow">▾</span>
+          </button>
+          <div class="dropdown-panel" id="clubStatsPanel"></div>
+        </div>
       </div>
 
       <label class="section-label">Play format</label>
@@ -1268,6 +1275,13 @@
       </div>
 
       <div class="panel">
+        <div class="panel-header"><span>Leaderboard</span></div>
+        <div class="table-scroll">
+          <table class="schedule-table" id="leaderboardTable"></table>
+        </div>
+      </div>
+
+      <div class="panel">
         <div class="panel-header"><span>Games Played</span></div>
         <div class="games-grid" id="gamesGrid"></div>
       </div>
@@ -1396,6 +1410,7 @@
   const pickPanel = document.getElementById("pickPanel");
   const managePanel = document.getElementById("managePanel");
   const sessionsPanel = document.getElementById("sessionsPanel");
+  const clubStatsPanel = document.getElementById("clubStatsPanel");
   const themeSwatchesContainer = document.getElementById("themeSwatches");
   const customColorRow = document.getElementById("customColorRow");
   const customColorInput = document.getElementById("customColorInput");
@@ -1481,6 +1496,7 @@
   const regenerateBtn = document.getElementById("regenerateBtn");
   const fullScheduleMeta = document.getElementById("fullScheduleMeta");
   const fullScheduleTable = document.getElementById("fullScheduleTable");
+  const leaderboardTable = document.getElementById("leaderboardTable");
   const gamesGrid = document.getElementById("gamesGrid");
 
   courtsInput.value = config.courts;
@@ -1771,12 +1787,73 @@
         pastSessions = pastSessions.filter((s) => s.id !== session.id);
         save(STORAGE.sessions, pastSessions);
         renderSessionsPanel();
+        renderClubStatsPanel();
       });
       btnGroup.appendChild(viewBtn);
       btnGroup.appendChild(delBtn);
       row.appendChild(span);
       row.appendChild(btnGroup);
       sessionsPanel.appendChild(row);
+    });
+  }
+
+  function computeClubStats() {
+    const stats = {};
+    pastSessions.forEach((session) => {
+      const playedThisSession = new Set();
+      session.rounds.forEach((round) => {
+        round.courts.forEach((court) => {
+          const scored = court.scoreA !== "" && court.scoreB !== "";
+          const scoreA = scored ? parseInt(court.scoreA, 10) : NaN;
+          const scoreB = scored ? parseInt(court.scoreB, 10) : NaN;
+          const aWon = scored && scoreA > scoreB;
+          const bWon = scored && scoreB > scoreA;
+          [...court.teamA, ...court.teamB].forEach((p) => playedThisSession.add(p));
+          court.teamA.forEach((p) => {
+            if (!stats[p]) stats[p] = { sessions: new Set(), games: 0, wins: 0 };
+            stats[p].games += 1;
+            if (aWon) stats[p].wins += 1;
+          });
+          court.teamB.forEach((p) => {
+            if (!stats[p]) stats[p] = { sessions: new Set(), games: 0, wins: 0 };
+            stats[p].games += 1;
+            if (bWon) stats[p].wins += 1;
+          });
+        });
+      });
+      playedThisSession.forEach((p) => stats[p].sessions.add(session.id));
+    });
+    return stats;
+  }
+
+  function renderClubStatsPanel() {
+    clubStatsPanel.innerHTML = "";
+    const stats = computeClubStats();
+    const names = Object.keys(stats);
+    if (names.length === 0) {
+      const note = document.createElement("div");
+      note.className = "empty-note";
+      note.textContent = "No games recorded yet.";
+      clubStatsPanel.appendChild(note);
+      return;
+    }
+    names.sort((a, b) => {
+      if (stats[b].games !== stats[a].games) return stats[b].games - stats[a].games;
+      if (stats[b].wins !== stats[a].wins) return stats[b].wins - stats[a].wins;
+      return a.localeCompare(b);
+    });
+    names.forEach((name) => {
+      const st = stats[name];
+      const row = document.createElement("div");
+      row.className = "saved-row";
+      const span = document.createElement("span");
+      span.textContent = name;
+      const stat = document.createElement("span");
+      const sessionWord = st.sessions.size === 1 ? "session" : "sessions";
+      stat.textContent = `${st.sessions.size} ${sessionWord} · ${st.games} games · ${st.wins} wins`;
+      row.appendChild(span);
+      row.appendChild(stat);
+      clubStatsPanel.appendChild(row);
     });
   }
 
@@ -2517,6 +2594,7 @@
     setupView.style.display = "block";
     sessionView.style.display = "none";
     syncFormatButtons();
+    renderClubStatsPanel();
   }
   function showSessionView() {
     setupView.style.display = "none";
@@ -2724,6 +2802,7 @@
         court.scoreA = scoreA.value;
         updateSessionInStorage();
         renderFullSchedule();
+        renderLeaderboard();
       });
       const dash = document.createElement("span");
       dash.className = "dash";
@@ -2738,6 +2817,7 @@
         court.scoreB = scoreB.value;
         updateSessionInStorage();
         renderFullSchedule();
+        renderLeaderboard();
       });
       inputs.appendChild(scoreA);
       inputs.appendChild(dash);
@@ -2807,6 +2887,57 @@
     fullScheduleTable.innerHTML = html;
   }
 
+  function computeLeaderboardStats(session) {
+    const stats = {};
+    getAllPlayersEver(session).forEach((p) => {
+      stats[p] = { played: 0, wins: 0, pointsFor: 0, pointsAgainst: 0 };
+    });
+    session.rounds.forEach((round) => {
+      round.courts.forEach((court) => {
+        if (court.scoreA === "" || court.scoreB === "") return;
+        const scoreA = parseInt(court.scoreA, 10);
+        const scoreB = parseInt(court.scoreB, 10);
+        if (isNaN(scoreA) || isNaN(scoreB)) return;
+        const aWon = scoreA > scoreB;
+        const bWon = scoreB > scoreA;
+        court.teamA.forEach((p) => {
+          stats[p].played += 1;
+          stats[p].pointsFor += scoreA;
+          stats[p].pointsAgainst += scoreB;
+          if (aWon) stats[p].wins += 1;
+        });
+        court.teamB.forEach((p) => {
+          stats[p].played += 1;
+          stats[p].pointsFor += scoreB;
+          stats[p].pointsAgainst += scoreA;
+          if (bWon) stats[p].wins += 1;
+        });
+      });
+    });
+    return stats;
+  }
+
+  function renderLeaderboard() {
+    const s = currentSession;
+    const stats = computeLeaderboardStats(s);
+    const names = getAllPlayersEver(s).sort((a, b) => {
+      const diffA = stats[a].pointsFor - stats[a].pointsAgainst;
+      const diffB = stats[b].pointsFor - stats[b].pointsAgainst;
+      if (stats[b].wins !== stats[a].wins) return stats[b].wins - stats[a].wins;
+      if (diffB !== diffA) return diffB - diffA;
+      return a.localeCompare(b);
+    });
+    let html = "<thead><tr><th>#</th><th>Player</th><th>Won</th><th>Played</th><th>+/-</th></tr></thead><tbody>";
+    names.forEach((name, i) => {
+      const st = stats[name];
+      const diff = st.pointsFor - st.pointsAgainst;
+      const diffText = diff > 0 ? `+${diff}` : String(diff);
+      html += `<tr><td>${i + 1}</td><td>${name}</td><td>${st.wins}</td><td>${st.played}</td><td>${diffText}</td></tr>`;
+    });
+    html += "</tbody>";
+    leaderboardTable.innerHTML = html;
+  }
+
   function renderGamesPlayed() {
     const s = currentSession;
     const gamesCount = {};
@@ -2837,6 +2968,7 @@
     renderInfoBar();
     renderRound();
     renderFullSchedule();
+    renderLeaderboard();
     renderGamesPlayed();
     updateRosterPanelState();
   }
@@ -3071,6 +3203,7 @@
     pastSessions.push(currentSession);
     save(STORAGE.sessions, pastSessions);
     renderSessionsPanel();
+    renderClubStatsPanel();
     showSessionView();
     renderAll();
     return true;
@@ -3091,6 +3224,7 @@
   renderPickPanel();
   renderManagePanel();
   renderSessionsPanel();
+  renderClubStatsPanel();
   renderCourtLabels();
   updateGamesModeUI();
   syncFormatButtons();
