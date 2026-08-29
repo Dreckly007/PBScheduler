@@ -831,6 +831,7 @@
   .schedule-table td { padding: 10px 12px; vertical-align: top; border-top: 1px solid #f0f0f0; color: var(--text); }
   .schedule-table tr:nth-child(even) td { background: #fdf9ef; }
   .schedule-table .vs { text-align: center; color: var(--muted); font-size: 0.72rem; margin: 2px 0; }
+  .schedule-table .score { text-align: center; color: var(--green-dark); font-weight: 700; font-size: 0.82rem; margin: 2px 0; }
   .schedule-table .resting-cell { color: var(--green-dark); font-size: 0.8rem; }
 
   .games-grid {
@@ -1243,7 +1244,7 @@
 
       <div class="dropdown-row no-print">
         <div class="dropdown">
-          <button class="dropdown-toggle" id="printBtn">Print / Save as PDF</button>
+          <button class="dropdown-toggle" id="printBtn">Print full record</button>
         </div>
         <div class="dropdown">
           <button class="dropdown-toggle" id="printCourtsBtn">Print court sheets</button>
@@ -2722,6 +2723,7 @@
         sanitizeScoreInput(scoreA, scoreMax);
         court.scoreA = scoreA.value;
         updateSessionInStorage();
+        renderFullSchedule();
       });
       const dash = document.createElement("span");
       dash.className = "dash";
@@ -2735,6 +2737,7 @@
         sanitizeScoreInput(scoreB, scoreMax);
         court.scoreB = scoreB.value;
         updateSessionInStorage();
+        renderFullSchedule();
       });
       inputs.appendChild(scoreA);
       inputs.appendChild(dash);
@@ -2788,9 +2791,15 @@
       html += `<tr><td>${round.round}</td>`;
       for (let i = 0; i < maxCourts; i++) {
         const court = round.courts[i];
-        html += court
-          ? `<td>${court.teamA.join(" & ")}<div class="vs">vs</div>${court.teamB.join(" & ")}</td>`
-          : `<td class="resting-cell">—</td>`;
+        if (!court) {
+          html += `<td class="resting-cell">—</td>`;
+          continue;
+        }
+        const hasScore = court.scoreA !== "" || court.scoreB !== "";
+        const middle = hasScore
+          ? `<div class="score">${court.scoreA} – ${court.scoreB}</div>`
+          : `<div class="vs">vs</div>`;
+        html += `<td>${court.teamA.join(" & ")}${middle}${court.teamB.join(" & ")}</td>`;
       }
       html += `<td class="resting-cell">${round.sitOuts.join(", ")}</td></tr>`;
     });
