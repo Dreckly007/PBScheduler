@@ -996,6 +996,14 @@
     border-radius: 2px;
   }
   .print-score-dash { color: #333; font-weight: 700; }
+  .print-score-filled {
+    display: inline-block;
+    min-width: 24px;
+    font-size: 10pt;
+    font-weight: 800;
+    color: #000;
+    text-align: center;
+  }
 
   @media print {
     body.printing-court-sheets .bg-watermark,
@@ -1167,9 +1175,9 @@
         <h2 id="roundHeader">Round 1 / 1</h2>
       </div>
 
-      <div id="courtsContainer"></div>
+      <div id="courtsContainer" class="no-print"></div>
 
-      <div class="resting-bar" id="restingBar"></div>
+      <div class="resting-bar no-print" id="restingBar"></div>
 
       <div class="nav-row no-print">
         <button class="nav-btn prev" id="prevBtn">&larr; Prev</button>
@@ -2845,7 +2853,7 @@
     const s = currentSession;
     const maxCourts = Math.max(1, ...s.rounds.map((r) => r.courts.length));
     const formatLabel = s.config.format === "singles" ? "Singles" : "Doubles";
-    const scoreLine = `<div class="print-score-line"><span class="print-score-box"></span><span class="print-score-dash">–</span><span class="print-score-box"></span></div>`;
+    const scoreBox = `<span class="print-score-box"></span>`;
 
     let html = `<div class="print-sheets-header">${formatLabel} · ${s.players.length} players · ${maxCourts} courts · ${s.rounds.length} rounds</div>`;
     s.rounds.forEach((round) => {
@@ -2857,7 +2865,14 @@
           ? [court.teamA[0], court.teamB[0], court.teamA[1], court.teamB[1]]
           : [court.teamA[0], court.teamB[0]];
         const cells = cellNames.map((name) => `<span>${name}</span>`).join("");
-        html += `<div class="print-court"><div class="print-court-label">Court ${court.label}</div><div class="print-court-teams">${cells}</div>${showScoreLine ? scoreLine : ""}</div>`;
+        let scoreLine = "";
+        if (showScoreLine) {
+          const hasScore = court.scoreA !== "" || court.scoreB !== "";
+          const sideA = hasScore ? `<span class="print-score-filled">${court.scoreA}</span>` : scoreBox;
+          const sideB = hasScore ? `<span class="print-score-filled">${court.scoreB}</span>` : scoreBox;
+          scoreLine = `<div class="print-score-line">${sideA}<span class="print-score-dash">–</span>${sideB}</div>`;
+        }
+        html += `<div class="print-court"><div class="print-court-label">Court ${court.label}</div><div class="print-court-teams">${cells}</div>${scoreLine}</div>`;
       });
       html += `</div>`;
       if (round.sitOuts.length) {
