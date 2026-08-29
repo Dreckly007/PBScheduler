@@ -674,6 +674,7 @@
     display: grid;
     grid-template-columns: 1fr;
     gap: 16px;
+    margin-bottom: 16px;
   }
   @media (min-width: 760px) {
     #courtsContainer { grid-template-columns: repeat(2, 1fr); }
@@ -744,7 +745,7 @@
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
-    margin: 16px 0;
+    margin: 0 0 16px;
   }
   .resting-bar .label { font-weight: 700; color: #8a6d1f; }
   .resting-pill {
@@ -857,7 +858,7 @@
   .remove-marked { text-decoration: line-through; opacity: 0.55; }
 
   .remove-mode-hint { font-size: 0.85rem; color: var(--green-dark); margin-bottom: 8px; }
-  #rosterStagingPanel { border-radius: 10px; border-top: 1px solid var(--card-border); margin-top: 8px; }
+  #rosterStagingPanel { border-radius: 10px; border-top: 1px solid var(--card-border); margin-top: 8px; margin-bottom: 10px; }
   .roster-panel-top { display: flex; flex-wrap: wrap; gap: 10px; }
   .roster-panel-top .inline-form { flex: 1 1 220px; margin-top: 0; }
   .roster-courts-row {
@@ -978,10 +979,31 @@
   .print-court-teams span:nth-child(-n+2) { border-top: none; }
   .print-resting { font-size: 8pt; color: #444; margin-top: 2px; }
 
+  #printScoreSheetView { display: none; }
+  .print-score-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 3px 4px;
+    border-top: 1px solid #333;
+  }
+  .print-score-box {
+    display: inline-block;
+    width: 24px;
+    height: 15px;
+    border: 1px solid #333;
+    border-radius: 2px;
+  }
+  .print-score-dash { color: #333; font-weight: 700; }
+
   @media print {
     body.printing-court-sheets .bg-watermark,
     body.printing-court-sheets .app > *:not(#printSheetsView) { display: none !important; }
     body.printing-court-sheets #printSheetsView { display: block !important; }
+    body.printing-score-sheet .bg-watermark,
+    body.printing-score-sheet .app > *:not(#printScoreSheetView) { display: none !important; }
+    body.printing-score-sheet #printScoreSheetView { display: block !important; }
     @page { size: A4; margin: 12mm; }
   }
 </style>
@@ -1141,7 +1163,7 @@
     </div>
 
     <div id="sessionView" style="display:none;">
-      <div class="session-header">
+      <div class="session-header no-print">
         <h2 id="roundHeader">Round 1 / 1</h2>
       </div>
 
@@ -1211,8 +1233,17 @@
         </div>
       </div>
 
-      <button class="outline-btn no-print" id="printBtn">Print / Save as PDF</button>
-      <button class="outline-btn no-print" id="printCourtsBtn">Print court sheets</button>
+      <div class="dropdown-row no-print">
+        <div class="dropdown">
+          <button class="dropdown-toggle" id="printBtn">Print / Save as PDF</button>
+        </div>
+        <div class="dropdown">
+          <button class="dropdown-toggle" id="printCourtsBtn">Print court sheets</button>
+        </div>
+        <div class="dropdown">
+          <button class="dropdown-toggle" id="printScoreSheetBtn">Print score sheet</button>
+        </div>
+      </div>
       <button class="outline-btn no-print" id="regenerateBtn">Regenerate Schedule</button>
 
       <div class="info-bar" id="infoBar"></div>
@@ -1234,6 +1265,8 @@
     </div>
 
     <div id="printSheetsView"></div>
+
+    <div id="printScoreSheetView"></div>
 
     <div class="modal-overlay no-print" id="swapConfirmOverlay" style="display:none;">
       <div class="modal-card">
@@ -1434,6 +1467,8 @@
   const printBtn = document.getElementById("printBtn");
   const printCourtsBtn = document.getElementById("printCourtsBtn");
   const printSheetsView = document.getElementById("printSheetsView");
+  const printScoreSheetBtn = document.getElementById("printScoreSheetBtn");
+  const printScoreSheetView = document.getElementById("printScoreSheetView");
   const regenerateBtn = document.getElementById("regenerateBtn");
   const fullScheduleMeta = document.getElementById("fullScheduleMeta");
   const fullScheduleTable = document.getElementById("fullScheduleTable");
@@ -2806,10 +2841,11 @@
 
   printBtn.addEventListener("click", () => window.print());
 
-  function buildPrintSheetsView() {
+  function buildPrintRoundsHtml(showScoreLine) {
     const s = currentSession;
     const maxCourts = Math.max(1, ...s.rounds.map((r) => r.courts.length));
     const formatLabel = s.config.format === "singles" ? "Singles" : "Doubles";
+    const scoreLine = `<div class="print-score-line"><span class="print-score-box"></span><span class="print-score-dash">–</span><span class="print-score-box"></span></div>`;
 
     let html = `<div class="print-sheets-header">${formatLabel} · ${s.players.length} players · ${maxCourts} courts · ${s.rounds.length} rounds</div>`;
     s.rounds.forEach((round) => {
@@ -2821,7 +2857,7 @@
           ? [court.teamA[0], court.teamB[0], court.teamA[1], court.teamB[1]]
           : [court.teamA[0], court.teamB[0]];
         const cells = cellNames.map((name) => `<span>${name}</span>`).join("");
-        html += `<div class="print-court"><div class="print-court-label">Court ${court.label}</div><div class="print-court-teams">${cells}</div></div>`;
+        html += `<div class="print-court"><div class="print-court-label">Court ${court.label}</div><div class="print-court-teams">${cells}</div>${showScoreLine ? scoreLine : ""}</div>`;
       });
       html += `</div>`;
       if (round.sitOuts.length) {
@@ -2829,14 +2865,21 @@
       }
       html += `</div>`;
     });
-    printSheetsView.innerHTML = html;
+    return html;
   }
 
   printCourtsBtn.addEventListener("click", () => {
-    buildPrintSheetsView();
+    printSheetsView.innerHTML = buildPrintRoundsHtml(false);
     document.body.classList.add("printing-court-sheets");
     window.print();
     document.body.classList.remove("printing-court-sheets");
+  });
+
+  printScoreSheetBtn.addEventListener("click", () => {
+    printScoreSheetView.innerHTML = buildPrintRoundsHtml(true);
+    document.body.classList.add("printing-score-sheet");
+    window.print();
+    document.body.classList.remove("printing-score-sheet");
   });
 
   editPlayersLink.addEventListener("click", showSetupView);
