@@ -981,6 +981,8 @@
   .print-resting { font-size: 8pt; color: var(--muted); margin-top: 2px; }
 
   #printScoreSheetView { display: none; }
+  #printLeaderboardView { display: none; }
+  #printSessionStatsView { display: none; }
   .print-score-line {
     display: flex;
     align-items: center;
@@ -1013,6 +1015,12 @@
     body.printing-score-sheet .bg-watermark,
     body.printing-score-sheet .app > *:not(#printScoreSheetView) { display: none !important; }
     body.printing-score-sheet #printScoreSheetView { display: block !important; }
+    body.printing-leaderboard .bg-watermark,
+    body.printing-leaderboard .app > *:not(#printLeaderboardView) { display: none !important; }
+    body.printing-leaderboard #printLeaderboardView { display: block !important; }
+    body.printing-session-stats .bg-watermark,
+    body.printing-session-stats .app > *:not(#printSessionStatsView) { display: none !important; }
+    body.printing-session-stats #printSessionStatsView { display: block !important; }
     @page { size: A4; margin: 12mm; }
   }
 </style>
@@ -1259,6 +1267,12 @@
         <div class="dropdown">
           <button class="dropdown-toggle" id="printScoreSheetBtn">Print score sheet</button>
         </div>
+        <div class="dropdown">
+          <button class="dropdown-toggle" id="printLeaderboardBtn">Print leaderboard</button>
+        </div>
+        <div class="dropdown">
+          <button class="dropdown-toggle" id="printSessionStatsBtn">Print session stats</button>
+        </div>
       </div>
       <button class="outline-btn no-print" id="regenerateBtn">Regenerate Schedule</button>
 
@@ -1290,6 +1304,10 @@
     <div id="printSheetsView"></div>
 
     <div id="printScoreSheetView"></div>
+
+    <div id="printLeaderboardView"></div>
+
+    <div id="printSessionStatsView"></div>
 
     <div class="modal-overlay no-print" id="swapConfirmOverlay" style="display:none;">
       <div class="modal-card">
@@ -1493,6 +1511,10 @@
   const printSheetsView = document.getElementById("printSheetsView");
   const printScoreSheetBtn = document.getElementById("printScoreSheetBtn");
   const printScoreSheetView = document.getElementById("printScoreSheetView");
+  const printLeaderboardBtn = document.getElementById("printLeaderboardBtn");
+  const printLeaderboardView = document.getElementById("printLeaderboardView");
+  const printSessionStatsBtn = document.getElementById("printSessionStatsBtn");
+  const printSessionStatsView = document.getElementById("printSessionStatsView");
   const regenerateBtn = document.getElementById("regenerateBtn");
   const fullScheduleMeta = document.getElementById("fullScheduleMeta");
   const fullScheduleTable = document.getElementById("fullScheduleTable");
@@ -1826,10 +1848,18 @@
     return stats;
   }
 
+  function getSortedClubStatsNames(stats) {
+    return Object.keys(stats).sort((a, b) => {
+      if (stats[b].games !== stats[a].games) return stats[b].games - stats[a].games;
+      if (stats[b].wins !== stats[a].wins) return stats[b].wins - stats[a].wins;
+      return a.localeCompare(b);
+    });
+  }
+
   function renderClubStatsPanel() {
     clubStatsPanel.innerHTML = "";
     const stats = computeClubStats();
-    const names = Object.keys(stats);
+    const names = getSortedClubStatsNames(stats);
     if (names.length === 0) {
       const note = document.createElement("div");
       note.className = "empty-note";
@@ -1837,11 +1867,6 @@
       clubStatsPanel.appendChild(note);
       return;
     }
-    names.sort((a, b) => {
-      if (stats[b].games !== stats[a].games) return stats[b].games - stats[a].games;
-      if (stats[b].wins !== stats[a].wins) return stats[b].wins - stats[a].wins;
-      return a.localeCompare(b);
-    });
     names.forEach((name) => {
       const st = stats[name];
       const row = document.createElement("div");
@@ -2917,10 +2942,9 @@
     return stats;
   }
 
-  function renderLeaderboard() {
-    const s = currentSession;
-    const stats = computeLeaderboardStats(s);
-    const names = getAllPlayersEver(s).sort((a, b) => {
+  function buildLeaderboardTableHtml(session) {
+    const stats = computeLeaderboardStats(session);
+    const names = getAllPlayersEver(session).sort((a, b) => {
       const diffA = stats[a].pointsFor - stats[a].pointsAgainst;
       const diffB = stats[b].pointsFor - stats[b].pointsAgainst;
       if (stats[b].wins !== stats[a].wins) return stats[b].wins - stats[a].wins;
@@ -2935,7 +2959,11 @@
       html += `<tr><td>${i + 1}</td><td>${name}</td><td>${st.wins}</td><td>${st.played}</td><td>${diffText}</td></tr>`;
     });
     html += "</tbody>";
-    leaderboardTable.innerHTML = html;
+    return html;
+  }
+
+  function renderLeaderboard() {
+    leaderboardTable.innerHTML = buildLeaderboardTableHtml(currentSession);
   }
 
   function renderGamesPlayed() {
@@ -3036,6 +3064,40 @@
     document.body.classList.add("printing-score-sheet");
     window.print();
     document.body.classList.remove("printing-score-sheet");
+  });
+
+  function buildPrintLeaderboardHtml() {
+    const s = currentSession;
+    const formatLabel = s.config.format === "singles" ? "Singles" : "Doubles";
+    const header = `<div class="print-sheets-header">${formatLabel} · ${s.players.length} players · ${s.rounds.length} rounds · Leaderboard</div>`;
+    return `${header}<table class="schedule-table">${buildLeaderboardTableHtml(s)}</table>`;
+  }
+
+  printLeaderboardBtn.addEventListener("click", () => {
+    printLeaderboardView.innerHTML = buildPrintLeaderboardHtml();
+    document.body.classList.add("printing-leaderboard");
+    window.print();
+    document.body.classList.remove("printing-leaderboard");
+  });
+
+  function buildPrintSessionStatsHtml() {
+    const stats = computeClubStats();
+    const names = getSortedClubStatsNames(stats);
+    const header = `<div class="print-sheets-header">Session Stats · ${names.length} players · ${pastSessions.length} sessions</div>`;
+    let html = `${header}<table class="schedule-table"><thead><tr><th>Player</th><th>Sessions</th><th>Games</th><th>Wins</th></tr></thead><tbody>`;
+    names.forEach((name) => {
+      const st = stats[name];
+      html += `<tr><td>${name}</td><td>${st.sessions.size}</td><td>${st.games}</td><td>${st.wins}</td></tr>`;
+    });
+    html += "</tbody></table>";
+    return html;
+  }
+
+  printSessionStatsBtn.addEventListener("click", () => {
+    printSessionStatsView.innerHTML = buildPrintSessionStatsHtml();
+    document.body.classList.add("printing-session-stats");
+    window.print();
+    document.body.classList.remove("printing-session-stats");
   });
 
   editPlayersLink.addEventListener("click", showSetupView);
