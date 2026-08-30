@@ -3016,20 +3016,24 @@
     }
   });
 
-  printBtn.addEventListener("click", () => window.print());
+  const PRINT_MODE_CLASSES = ["printing-court-sheets", "printing-score-sheet", "printing-leaderboard", "printing-session-stats"];
+
+  printBtn.addEventListener("click", () => {
+    document.body.classList.remove(...PRINT_MODE_CLASSES);
+    window.print();
+  });
 
   function printWithClass(className) {
+    // Only ever add the class - never remove it right after printing. On
+    // iOS Safari the print/share sheet shows a live preview of the page, so
+    // reverting the class as soon as printing "finishes" (afterprint fires
+    // as soon as the preview appears there, not when it's dismissed) makes
+    // the preview flip back to the normal view while still open. The class
+    // only matters under @media print, so leaving it applied is harmless on
+    // screen - the next print action just swaps in whichever class it needs.
+    document.body.classList.remove(...PRINT_MODE_CLASSES);
     document.body.classList.add(className);
-    const cleanup = () => {
-      document.body.classList.remove(className);
-      window.removeEventListener("afterprint", cleanup);
-    };
-    window.addEventListener("afterprint", cleanup);
     window.print();
-    // Desktop browsers block on window.print() until the dialog closes, so
-    // afterprint alone would be enough there - but mobile Safari returns
-    // immediately without waiting for the print/share sheet, so afterprint
-    // is the only reliable signal that printing has actually finished.
   }
 
   function buildPrintRoundsHtml(showScoreLine) {
