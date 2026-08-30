@@ -3018,6 +3018,20 @@
 
   printBtn.addEventListener("click", () => window.print());
 
+  function printWithClass(className) {
+    document.body.classList.add(className);
+    const cleanup = () => {
+      document.body.classList.remove(className);
+      window.removeEventListener("afterprint", cleanup);
+    };
+    window.addEventListener("afterprint", cleanup);
+    window.print();
+    // Desktop browsers block on window.print() until the dialog closes, so
+    // afterprint alone would be enough there - but mobile Safari returns
+    // immediately without waiting for the print/share sheet, so afterprint
+    // is the only reliable signal that printing has actually finished.
+  }
+
   function buildPrintRoundsHtml(showScoreLine) {
     const s = currentSession;
     const maxCourts = Math.max(1, ...s.rounds.map((r) => r.courts.length));
@@ -3054,16 +3068,12 @@
 
   printCourtsBtn.addEventListener("click", () => {
     printSheetsView.innerHTML = buildPrintRoundsHtml(false);
-    document.body.classList.add("printing-court-sheets");
-    window.print();
-    document.body.classList.remove("printing-court-sheets");
+    printWithClass("printing-court-sheets");
   });
 
   printScoreSheetBtn.addEventListener("click", () => {
     printScoreSheetView.innerHTML = buildPrintRoundsHtml(true);
-    document.body.classList.add("printing-score-sheet");
-    window.print();
-    document.body.classList.remove("printing-score-sheet");
+    printWithClass("printing-score-sheet");
   });
 
   function buildPrintLeaderboardHtml() {
@@ -3075,9 +3085,7 @@
 
   printLeaderboardBtn.addEventListener("click", () => {
     printLeaderboardView.innerHTML = buildPrintLeaderboardHtml();
-    document.body.classList.add("printing-leaderboard");
-    window.print();
-    document.body.classList.remove("printing-leaderboard");
+    printWithClass("printing-leaderboard");
   });
 
   function buildPrintSessionStatsHtml() {
@@ -3095,9 +3103,7 @@
 
   printSessionStatsBtn.addEventListener("click", () => {
     printSessionStatsView.innerHTML = buildPrintSessionStatsHtml();
-    document.body.classList.add("printing-session-stats");
-    window.print();
-    document.body.classList.remove("printing-session-stats");
+    printWithClass("printing-session-stats");
   });
 
   editPlayersLink.addEventListener("click", showSetupView);
