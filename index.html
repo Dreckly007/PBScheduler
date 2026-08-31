@@ -1006,10 +1006,19 @@
     #printButtonsRow { grid-template-columns: repeat(2, 1fr); }
     #actionButtonsRow {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(6, 1fr);
       gap: 10px;
     }
     #actionButtonsRow .dropdown { flex: none; min-width: 0; }
+    #actionButtonsRow .dropdown:nth-child(1),
+    #actionButtonsRow .dropdown:nth-child(2),
+    #actionButtonsRow .dropdown:nth-child(3) {
+      grid-column: span 2;
+    }
+    #actionButtonsRow .dropdown:nth-child(4),
+    #actionButtonsRow .dropdown:nth-child(5) {
+      grid-column: span 3;
+    }
   }
 
   @media print {
