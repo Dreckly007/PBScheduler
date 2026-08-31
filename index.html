@@ -894,6 +894,14 @@
     overflow: hidden;
     margin-top: 22px;
   }
+  .panel.panel-collapsed { display: none; }
+  #panelToggleRow {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+  }
+  #panelToggleRow .dropdown { flex: none; min-width: 0; margin-top: 0; }
   .panel-header {
     background: var(--green-dark);
     color: var(--on-accent);
@@ -1032,6 +1040,7 @@
 
   @media print {
     .no-print { display: none !important; }
+    .panel.panel-collapsed { display: block !important; }
   }
 
   #printSheetsView { display: none; }
@@ -1433,7 +1442,19 @@
 
       <div class="info-bar" id="infoBar"></div>
 
-      <div class="panel">
+      <div class="dropdown-row no-print" id="panelToggleRow">
+        <div class="dropdown">
+          <button class="dropdown-toggle" id="toggleFullScheduleBtn" data-panel="fullSchedulePanel" data-label="Full Schedule">View Full Schedule</button>
+        </div>
+        <div class="dropdown">
+          <button class="dropdown-toggle" id="toggleLeaderboardBtn" data-panel="leaderboardPanel" data-label="Leaderboard">View Leaderboard</button>
+        </div>
+        <div class="dropdown">
+          <button class="dropdown-toggle" id="toggleGamesPlayedBtn" data-panel="gamesPlayedPanel" data-label="Games Played">View Games Played</button>
+        </div>
+      </div>
+
+      <div class="panel panel-collapsed" id="fullSchedulePanel">
         <div class="panel-header">
           <span>Full Schedule</span>
           <span id="fullScheduleMeta"></span>
@@ -1443,14 +1464,14 @@
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel panel-collapsed" id="leaderboardPanel">
         <div class="panel-header"><span>Leaderboard</span></div>
         <div class="table-scroll">
           <table class="schedule-table" id="leaderboardTable"></table>
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel panel-collapsed" id="gamesPlayedPanel">
         <div class="panel-header"><span>Games Played</span></div>
         <div class="games-grid" id="gamesGrid"></div>
       </div>
@@ -3217,6 +3238,14 @@
     renderGamesPlayed();
     updateRosterPanelState();
   }
+
+  document.querySelectorAll("#panelToggleRow .dropdown-toggle").forEach((btn) => {
+    const panel = document.getElementById(btn.dataset.panel);
+    btn.addEventListener("click", () => {
+      const collapsed = panel.classList.toggle("panel-collapsed");
+      btn.textContent = `${collapsed ? "View" : "Hide"} ${btn.dataset.label}`;
+    });
+  });
 
   prevBtn.addEventListener("click", () => {
     if (currentRoundIndex > 0) {
