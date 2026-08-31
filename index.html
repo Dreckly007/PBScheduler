@@ -389,6 +389,44 @@
     margin-bottom: 6px;
     text-align: center;
   }
+  .number-stepper {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .number-stepper input[type="number"] {
+    text-align: center;
+    padding: 12px 4px;
+    min-width: 0;
+    -moz-appearance: textfield;
+  }
+  .number-stepper input[type="number"]::-webkit-inner-spin-button,
+  .number-stepper input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .stepper-btn {
+    flex: 0 0 auto;
+    width: 36px;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--green-dark);
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    padding: 0;
+  }
+  .stepper-btn:active {
+    background: var(--green-pale);
+  }
   .hint {
     font-size: 0.82rem;
     color: var(--muted);
@@ -1175,11 +1213,19 @@
       <div class="config-grid">
         <div class="field">
           <label for="courtsInput">Courts available</label>
-          <input type="number" id="courtsInput" min="1" max="12" value="1" />
+          <div class="number-stepper">
+            <button type="button" class="stepper-btn" data-target="courtsInput" data-step="-1" aria-label="Decrease courts available">−</button>
+            <input type="number" id="courtsInput" min="1" max="12" value="1" />
+            <button type="button" class="stepper-btn" data-target="courtsInput" data-step="1" aria-label="Increase courts available">+</button>
+          </div>
         </div>
         <div class="field">
           <label for="gamesToPlayInput">Games to play</label>
-          <input type="number" id="gamesToPlayInput" min="0" value="0" />
+          <div class="number-stepper">
+            <button type="button" class="stepper-btn" data-target="gamesToPlayInput" data-step="-1" aria-label="Decrease games to play">−</button>
+            <input type="number" id="gamesToPlayInput" min="0" value="0" />
+            <button type="button" class="stepper-btn" data-target="gamesToPlayInput" data-step="1" aria-label="Increase games to play">+</button>
+          </div>
         </div>
         <div class="or-divider">OR</div>
         <div class="field">
@@ -1749,6 +1795,11 @@
     if (todayPlayers.some((p) => p.toLowerCase() === name.toLowerCase())) return;
     todayPlayers.push(name);
     save(STORAGE.today, todayPlayers);
+    if (!savedPlayers.some((p) => p.toLowerCase() === name.toLowerCase())) {
+      savedPlayers.push(name);
+      save(STORAGE.saved, savedPlayers);
+      renderManagePanel();
+    }
     renderTodayChips();
     renderPickPanel();
   }
@@ -2126,6 +2177,20 @@
   gamesToPlayInput.addEventListener("input", () => {
     persistConfig();
     updateGamesModeUI();
+  });
+  document.querySelectorAll(".stepper-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const input = document.getElementById(btn.dataset.target);
+      if (!input) return;
+      const step = parseInt(btn.dataset.step, 10);
+      const min = input.min !== "" ? parseInt(input.min, 10) : -Infinity;
+      const max = input.max !== "" ? parseInt(input.max, 10) : Infinity;
+      let value = parseInt(input.value, 10);
+      if (isNaN(value)) value = min !== -Infinity ? min : 0;
+      value = Math.min(max, Math.max(min, value + step));
+      input.value = value;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
   });
   gameLengthInput.addEventListener("input", () => {
     persistConfig();
