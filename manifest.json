@@ -1,7 +1,7 @@
 {
   "id": ".",
-  "name": "Pickleball Scheduler",
-  "short_name": "PB Scheduler",
+  "name": "Fair Dink",
+  "short_name": "Fair Dink",
   "description": "Fair round-robin pickleball session scheduler for Kernow Pickleball Club",
   "start_url": "./index.html",
   "scope": "./",
