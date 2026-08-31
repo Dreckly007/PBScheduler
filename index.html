@@ -1004,6 +1004,12 @@
     .dropdown-row .dropdown-toggle { font-size: 0.78rem; padding: 12px 8px; }
     .dropdown-row .dropdown-toggle .arrow { flex-shrink: 0; margin-left: 4px; }
     #printButtonsRow { grid-template-columns: repeat(2, 1fr); }
+    #actionButtonsRow {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    #actionButtonsRow .dropdown { flex: none; min-width: 0; }
   }
 
   @media print {
@@ -1307,7 +1313,7 @@
         <button class="nav-btn next" id="nextBtn">Next &rarr;</button>
       </div>
 
-      <div class="dropdown-row no-print no-share">
+      <div class="dropdown-row no-print no-share" id="actionButtonsRow">
         <div class="dropdown">
           <button class="dropdown-toggle" id="startOverLink">Start Over</button>
         </div>
