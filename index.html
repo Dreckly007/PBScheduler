@@ -321,7 +321,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    overflow-wrap: anywhere;
   }
+  #printButtonsRow {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  #printButtonsRow .dropdown { flex: none; min-width: 0; }
   .dropdown-toggle-label { display: flex; align-items: center; gap: 8px; }
   .theme-toggle-dot {
     width: 20px;
@@ -996,6 +1003,7 @@
     .paired-grid { grid-template-columns: 1fr; }
     .dropdown-row .dropdown-toggle { font-size: 0.78rem; padding: 12px 8px; }
     .dropdown-row .dropdown-toggle .arrow { flex-shrink: 0; margin-left: 4px; }
+    #printButtonsRow { grid-template-columns: repeat(2, 1fr); }
   }
 
   @media print {
@@ -1356,7 +1364,7 @@
         </div>
       </div>
 
-      <div class="dropdown-row no-print">
+      <div class="dropdown-row no-print" id="printButtonsRow">
         <div class="dropdown">
           <button class="dropdown-toggle" id="printBtn">Print full record</button>
         </div>
