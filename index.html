@@ -2957,6 +2957,38 @@
     }
   }
 
+  function stepScoreInput(inputEl, step, maxVal) {
+    let value = parseInt(inputEl.value, 10);
+    if (isNaN(value)) value = 0;
+    value = Math.max(0, value + step);
+    if (maxVal != null) value = Math.min(maxVal, value);
+    inputEl.value = String(value);
+    inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  function buildScoreStepperGroup(inputEl, teamLabel, maxVal) {
+    const wrap = document.createElement("div");
+    wrap.className = "number-stepper number-stepper-sm score-stepper";
+    const minus = document.createElement("button");
+    minus.type = "button";
+    minus.className = "stepper-btn";
+    minus.textContent = "−";
+    minus.setAttribute("aria-label", `Decrease score for ${teamLabel}`);
+    minus.disabled = isSharedReadOnlyView;
+    minus.addEventListener("click", () => stepScoreInput(inputEl, -1, maxVal));
+    const plus = document.createElement("button");
+    plus.type = "button";
+    plus.className = "stepper-btn";
+    plus.textContent = "+";
+    plus.setAttribute("aria-label", `Increase score for ${teamLabel}`);
+    plus.disabled = isSharedReadOnlyView;
+    plus.addEventListener("click", () => stepScoreInput(inputEl, 1, maxVal));
+    wrap.appendChild(minus);
+    wrap.appendChild(inputEl);
+    wrap.appendChild(plus);
+    return wrap;
+  }
+
   function renderRound() {
     resetSwapSelection();
     const s = currentSession;
@@ -3029,9 +3061,9 @@
         renderFullSchedule();
         renderLeaderboard();
       });
-      inputs.appendChild(scoreA);
+      inputs.appendChild(buildScoreStepperGroup(scoreA, court.teamA.join(" & "), scoreMax));
       inputs.appendChild(dash);
-      inputs.appendChild(scoreB);
+      inputs.appendChild(buildScoreStepperGroup(scoreB, court.teamB.join(" & "), scoreMax));
       const labelRight = document.createElement("div");
       labelRight.className = "label-right";
       labelRight.textContent = court.teamB.join(" & ");
