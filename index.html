@@ -445,11 +445,12 @@
     color: var(--muted);
     margin-top: 4px;
   }
-  .hours-mins-row { display: flex; align-items: center; gap: 4px; }
-  .hours-mins-row input[type="number"] { flex: 1; min-width: 0; padding: 12px 4px; text-align: center; }
-  .hours-mins-row input#timeAvailableHoursInput { flex: 0.8; }
-  .hours-mins-row input#timeAvailableMinutesInput { flex: 1.3; }
+  .hours-mins-row { display: flex; align-items: center; gap: 6px; }
+  .hours-mins-row .number-stepper { flex: 1; min-width: 0; }
   .hours-mins-row .hint { margin-top: 0; white-space: nowrap; }
+  .number-stepper-sm { gap: 4px; }
+  .number-stepper-sm .stepper-btn { width: 28px; font-size: 1rem; }
+  .number-stepper-sm input[type="number"] { padding: 12px 2px; }
   .estimate-field { margin-top: 14px; }
   .estimate-box {
     background: #fff;
@@ -964,7 +965,8 @@
     border-radius: 10px;
   }
   .roster-courts-row label { font-weight: 700; color: var(--green-dark); font-size: 0.9rem; }
-  .roster-courts-row input { width: 70px; padding: 8px; text-align: center; }
+  .roster-courts-row .number-stepper { width: 110px; }
+  .roster-courts-row input { padding: 8px; text-align: center; }
 
   .modal-overlay {
     position: fixed;
@@ -1005,6 +1007,7 @@
   @media (max-width: 480px) {
     .config-grid { grid-template-columns: 1fr 1fr; }
     .config-grid .or-divider { grid-column: 1 / -1; }
+    .config-grid .field-wide-mobile { grid-column: 1 / -1; }
     .games-grid { grid-template-columns: 1fr; }
     .paired-grid { grid-template-columns: 1fr; }
     .dropdown-row .dropdown-toggle { font-size: 0.78rem; padding: 12px 8px; }
@@ -1260,15 +1263,27 @@
         <div class="or-divider">OR</div>
         <div class="field">
           <label for="gameLengthInput">Game length</label>
-          <input type="number" id="gameLengthInput" min="0" value="0" />
+          <div class="number-stepper">
+            <button type="button" class="stepper-btn" data-target="gameLengthInput" data-step="-1" aria-label="Decrease game length">−</button>
+            <input type="number" id="gameLengthInput" min="0" value="0" />
+            <button type="button" class="stepper-btn" data-target="gameLengthInput" data-step="1" aria-label="Increase game length">+</button>
+          </div>
           <div class="hint">mins</div>
         </div>
-        <div class="field">
+        <div class="field field-wide-mobile">
           <label for="timeAvailableHoursInput">Time available</label>
           <div class="hours-mins-row">
-            <input type="number" id="timeAvailableHoursInput" min="0" value="0" />
+            <div class="number-stepper number-stepper-sm">
+              <button type="button" class="stepper-btn" data-target="timeAvailableHoursInput" data-step="-1" aria-label="Decrease hours available">−</button>
+              <input type="number" id="timeAvailableHoursInput" min="0" value="0" />
+              <button type="button" class="stepper-btn" data-target="timeAvailableHoursInput" data-step="1" aria-label="Increase hours available">+</button>
+            </div>
             <span class="hint">hrs</span>
-            <input type="number" id="timeAvailableMinutesInput" min="0" max="59" value="0" />
+            <div class="number-stepper number-stepper-sm">
+              <button type="button" class="stepper-btn" data-target="timeAvailableMinutesInput" data-step="-1" aria-label="Decrease minutes available">−</button>
+              <input type="number" id="timeAvailableMinutesInput" min="0" max="59" value="0" />
+              <button type="button" class="stepper-btn" data-target="timeAvailableMinutesInput" data-step="1" aria-label="Increase minutes available">+</button>
+            </div>
             <span class="hint">mins</span>
           </div>
         </div>
@@ -1285,7 +1300,11 @@
       <div class="paired-grid">
         <div class="field" id="targetScoreField" style="display:none;">
           <label for="targetScoreInput">Points to win</label>
-          <input type="number" id="targetScoreInput" min="1" max="21" value="11" />
+          <div class="number-stepper">
+            <button type="button" class="stepper-btn" data-target="targetScoreInput" data-step="-1" aria-label="Decrease points to win">−</button>
+            <input type="number" id="targetScoreInput" min="1" max="21" value="11" />
+            <button type="button" class="stepper-btn" data-target="targetScoreInput" data-step="1" aria-label="Increase points to win">+</button>
+          </div>
         </div>
 
         <div class="field" id="winByTwoField" style="display:none;">
@@ -1354,7 +1373,11 @@
           </div>
           <div class="roster-courts-row" id="rosterCourtsRow" style="display:none;">
             <label for="rosterCourtsInput">Courts available</label>
-            <input type="number" id="rosterCourtsInput" min="1" max="12" />
+            <div class="number-stepper number-stepper-sm">
+              <button type="button" class="stepper-btn" data-target="rosterCourtsInput" data-step="-1" aria-label="Decrease courts available">−</button>
+              <input type="number" id="rosterCourtsInput" min="1" max="12" />
+              <button type="button" class="stepper-btn" data-target="rosterCourtsInput" data-step="1" aria-label="Increase courts available">+</button>
+            </div>
           </div>
         </div>
         <div class="remove-mode-hint" id="rosterRemoveHint" style="display:none;">
