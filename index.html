@@ -615,6 +615,32 @@
   .shared-banner a { color: var(--on-accent); text-decoration: underline; }
   body.shared-view .no-share { display: none !important; }
 
+  .install-tip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--green-pale);
+    border: 1px solid var(--green-pale-border);
+    color: var(--green-dark);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    margin-bottom: 14px;
+  }
+  .install-tip strong { font-weight: 800; }
+  #installTipDismiss {
+    background: none;
+    border: none;
+    color: var(--green-dark);
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0 0 8px;
+    flex-shrink: 0;
+  }
+  .install-tip .small-btn { flex-shrink: 0; white-space: nowrap; }
+
   .timer-section { text-align: center; margin: 6px 0 24px; }
   .timer-display { font-size: 3.2rem; font-weight: 800; color: var(--green-dark); line-height: 1; }
   .timer-buttons { display: flex; justify-content: center; gap: 10px; margin-top: 12px; }
@@ -1069,6 +1095,16 @@
   <div class="app">
     <h1>Pickleball Scheduler</h1>
 
+    <div class="install-tip no-print" id="installTip" style="display:none;">
+      <span>Tip: tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>, to install this as an app.</span>
+      <button id="installTipDismiss" aria-label="Dismiss">&times;</button>
+    </div>
+
+    <div class="install-tip no-print" id="androidInstallBanner" style="display:none;">
+      <span>Install this as an app for quick, full-screen access.</span>
+      <button class="small-btn add" id="androidInstallBtn">Install</button>
+    </div>
+
     <div id="setupView">
       <div class="dropdown" id="themeDropdown">
         <button class="dropdown-toggle" data-target="themeDropdown">
@@ -1377,6 +1413,7 @@
     sessions: "pbs_pastSessions",
     today: "pbs_todayPlayers",
     config: "pbs_config",
+    installTipDismissed: "pbs_installTipDismissed",
   };
 
   function load(key, fallback) {
@@ -1536,6 +1573,10 @@
   const printLeaderboardView = document.getElementById("printLeaderboardView");
   const printSessionStatsBtn = document.getElementById("printSessionStatsBtn");
   const printSessionStatsView = document.getElementById("printSessionStatsView");
+  const installTip = document.getElementById("installTip");
+  const installTipDismiss = document.getElementById("installTipDismiss");
+  const androidInstallBanner = document.getElementById("androidInstallBanner");
+  const androidInstallBtn = document.getElementById("androidInstallBtn");
   const shareBtn = document.getElementById("shareBtn");
   const sharedBanner = document.getElementById("sharedBanner");
   const sharedBannerExitLink = document.getElementById("sharedBannerExitLink");
@@ -3409,6 +3450,37 @@
   syncFormatButtons();
   syncWinByTwoButtons();
   loadSharedSessionFromHash();
+
+  function isRunningStandalone() {
+    return window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+  }
+  const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOSSafari && !isRunningStandalone() && !load(STORAGE.installTipDismissed, false)) {
+    installTip.style.display = "flex";
+  }
+  installTipDismiss.addEventListener("click", () => {
+    installTip.style.display = "none";
+    save(STORAGE.installTipDismissed, true);
+  });
+
+  let deferredInstallPrompt = null;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    if (isRunningStandalone()) return;
+    deferredInstallPrompt = e;
+    androidInstallBanner.style.display = "flex";
+  });
+  androidInstallBtn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+    androidInstallBanner.style.display = "none";
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+  });
+  window.addEventListener("appinstalled", () => {
+    androidInstallBanner.style.display = "none";
+    deferredInstallPrompt = null;
+  });
 })();
 </script>
 <script>
