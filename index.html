@@ -602,6 +602,19 @@
     line-height: 1.4;
   }
 
+  .shared-banner {
+    background: var(--green);
+    color: var(--on-accent);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .shared-banner a { color: var(--on-accent); text-decoration: underline; }
+  body.shared-view .no-share { display: none !important; }
+
   .timer-section { text-align: center; margin: 6px 0 24px; }
   .timer-display { font-size: 3.2rem; font-weight: 800; color: var(--green-dark); line-height: 1; }
   .timer-buttons { display: flex; justify-content: center; gap: 10px; margin-top: 12px; }
@@ -1187,6 +1200,10 @@
     </div>
 
     <div id="sessionView" style="display:none;">
+      <div class="shared-banner no-print" id="sharedBanner" style="display:none;">
+        Viewing a shared schedule (read-only). <a href="#" id="sharedBannerExitLink">Start your own</a>
+      </div>
+
       <div class="session-header no-print">
         <h2 id="roundHeader">Round 1 / 1</h2>
       </div>
@@ -1200,7 +1217,7 @@
         <button class="nav-btn next" id="nextBtn">Next &rarr;</button>
       </div>
 
-      <div class="dropdown-row no-print">
+      <div class="dropdown-row no-print no-share">
         <div class="dropdown">
           <button class="dropdown-toggle" id="startOverLink">Start Over</button>
         </div>
@@ -1217,7 +1234,7 @@
           <button class="dropdown-toggle" id="swapPlayersLink">Swap Player Positions</button>
         </div>
       </div>
-      <div class="dropdown-panel no-print" id="rosterStagingPanel" style="display:none;">
+      <div class="dropdown-panel no-print no-share" id="rosterStagingPanel" style="display:none;">
         <div class="roster-panel-top">
           <div class="inline-form" id="rosterAddForm" style="display:none;">
             <input type="text" id="rosterAddInput" placeholder="Add player name..." />
@@ -1237,8 +1254,8 @@
         </div>
       </div>
 
-      <button class="outline-btn no-print" id="timerToggleBtn">Timer</button>
-      <div class="timer-section no-print" id="timerSection" style="display:none;">
+      <button class="outline-btn no-print no-share" id="timerToggleBtn">Timer</button>
+      <div class="timer-section no-print no-share" id="timerSection" style="display:none;">
         <div class="timer-display" id="timerDisplay">10:00</div>
         <div class="timer-buttons">
           <button class="timer-btn start" id="timerStartBtn">Start</button>
@@ -1270,11 +1287,14 @@
         <div class="dropdown">
           <button class="dropdown-toggle" id="printLeaderboardBtn">Print leaderboard</button>
         </div>
-        <div class="dropdown">
+        <div class="dropdown no-share">
           <button class="dropdown-toggle" id="printSessionStatsBtn">Print session stats</button>
         </div>
+        <div class="dropdown">
+          <button class="dropdown-toggle" id="shareBtn">Share schedule</button>
+        </div>
       </div>
-      <button class="outline-btn no-print" id="regenerateBtn">Regenerate Schedule</button>
+      <button class="outline-btn no-print no-share" id="regenerateBtn">Regenerate Schedule</button>
 
       <div class="info-bar" id="infoBar"></div>
 
@@ -1416,6 +1436,7 @@
   let pendingSwap = null;
   let pendingRoster = [];
   let pendingCourts = 1;
+  let isSharedReadOnlyView = false;
   let timerSeconds = 0;
   let timerInterval = null;
 
@@ -1515,6 +1536,9 @@
   const printLeaderboardView = document.getElementById("printLeaderboardView");
   const printSessionStatsBtn = document.getElementById("printSessionStatsBtn");
   const printSessionStatsView = document.getElementById("printSessionStatsView");
+  const shareBtn = document.getElementById("shareBtn");
+  const sharedBanner = document.getElementById("sharedBanner");
+  const sharedBannerExitLink = document.getElementById("sharedBannerExitLink");
   const regenerateBtn = document.getElementById("regenerateBtn");
   const fullScheduleMeta = document.getElementById("fullScheduleMeta");
   const fullScheduleTable = document.getElementById("fullScheduleTable");
@@ -2822,6 +2846,7 @@
       scoreA.min = "0";
       if (scoreMax != null) scoreA.max = String(scoreMax);
       scoreA.value = court.scoreA;
+      scoreA.disabled = isSharedReadOnlyView;
       scoreA.addEventListener("input", () => {
         sanitizeScoreInput(scoreA, scoreMax);
         court.scoreA = scoreA.value;
@@ -2837,6 +2862,7 @@
       scoreB.min = "0";
       if (scoreMax != null) scoreB.max = String(scoreMax);
       scoreB.value = court.scoreB;
+      scoreB.disabled = isSharedReadOnlyView;
       scoreB.addEventListener("input", () => {
         sanitizeScoreInput(scoreB, scoreMax);
         court.scoreB = scoreB.value;
@@ -3110,6 +3136,87 @@
     printWithClass("printing-session-stats");
   });
 
+  function buildShareUrl() {
+    const s = currentSession;
+    const data = {
+      v: 1,
+      date: s.date,
+      players: s.players,
+      config: {
+        format: s.config.format,
+        courts: s.config.courts,
+        courtLabels: s.config.courtLabels,
+        gameLength: s.config.gameLength,
+        gamesToPlay: s.config.gamesToPlay,
+        targetScore: s.config.targetScore,
+        winByTwo: s.config.winByTwo,
+      },
+      rounds: s.rounds,
+    };
+    const encoded = encodeURIComponent(JSON.stringify(data));
+    return `${location.origin}${location.pathname}#share=${encoded}`;
+  }
+
+  shareBtn.addEventListener("click", async () => {
+    const url = buildShareUrl();
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Pickleball Schedule", url });
+      } catch (e) {
+        // user cancelled the share sheet - nothing to do
+      }
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(url);
+        alert("Link copied! Paste it wherever you'd like to share the schedule.");
+        return;
+      } catch (e) {
+        // fall through to prompt
+      }
+    }
+    prompt("Copy this link to share the schedule:", url);
+  });
+
+  function loadSharedSessionFromHash() {
+    if (!location.hash.startsWith("#share=")) return false;
+    let data;
+    try {
+      data = JSON.parse(decodeURIComponent(location.hash.slice(7)));
+    } catch (e) {
+      return false;
+    }
+    if (!data || !Array.isArray(data.rounds) || !Array.isArray(data.players)) return false;
+
+    const combined = computeFairnessState(data.rounds, data.config.format);
+    currentSession = {
+      id: "shared",
+      date: data.date,
+      players: data.players,
+      config: data.config,
+      rounds: data.rounds,
+      actualCourts: Math.max(0, ...data.rounds.map((r) => r.courts.length)),
+      maxRoundReached: data.rounds.length - 1,
+      maxPartner: Object.values(combined.partnerCount).reduce((m, v) => Math.max(m, v), 0),
+      maxOpponent: Object.values(combined.opponentCount).reduce((m, v) => Math.max(m, v), 0),
+      maxGroup: Object.values(combined.groupCount).reduce((m, v) => Math.max(m, v), 0),
+      flipCount: countRoleFlips(data.rounds, data.config.format),
+    };
+    currentRoundIndex = 0;
+    isSharedReadOnlyView = true;
+    document.body.classList.add("shared-view");
+    sharedBanner.style.display = "block";
+    showSessionView();
+    renderAll();
+    return true;
+  }
+
+  sharedBannerExitLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    location.href = location.pathname;
+  });
+
   editPlayersLink.addEventListener("click", showSetupView);
 
   function resetSwapSelection() {
@@ -3301,6 +3408,7 @@
   updateGamesModeUI();
   syncFormatButtons();
   syncWinByTwoButtons();
+  loadSharedSessionFromHash();
 })();
 </script>
 <script>
