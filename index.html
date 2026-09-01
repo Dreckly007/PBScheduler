@@ -357,6 +357,23 @@
   .dropdown.open .dropdown-panel { display: block; }
   .dropdown.open .dropdown-toggle { border-radius: 10px 10px 0 0; }
 
+  .pick-chip-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pick-chip {
+    border: 1px solid var(--card-border);
+    background: #fff;
+    color: var(--text);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .pick-chip.selected {
+    background: var(--green);
+    color: var(--on-accent);
+    border-color: var(--green);
+  }
+
   .saved-row, .session-row {
     display: flex;
     justify-content: space-between;
@@ -1843,7 +1860,7 @@
 
   function renderTodayChips() {
     todayChips.innerHTML = "";
-    todayPlayers.forEach((name, i) => {
+    todayPlayers.forEach((name) => {
       const chip = document.createElement("div");
       chip.className = "chip";
       const span = document.createElement("span");
@@ -1851,12 +1868,7 @@
       const btn = document.createElement("button");
       btn.textContent = "×";
       btn.title = "Remove";
-      btn.addEventListener("click", () => {
-        todayPlayers.splice(i, 1);
-        save(STORAGE.today, todayPlayers);
-        renderTodayChips();
-        renderPickPanel();
-      });
+      btn.addEventListener("click", () => removeTodayPlayer(name));
       chip.appendChild(span);
       chip.appendChild(btn);
       todayChips.appendChild(chip);
@@ -1878,6 +1890,15 @@
     renderPickPanel();
   }
 
+  function removeTodayPlayer(name) {
+    const idx = todayPlayers.findIndex((p) => p.toLowerCase() === name.toLowerCase());
+    if (idx === -1) return;
+    todayPlayers.splice(idx, 1);
+    save(STORAGE.today, todayPlayers);
+    renderTodayChips();
+    renderPickPanel();
+  }
+
   function submitPlayerAdd() {
     addTodayPlayer(playerInput.value);
     playerInput.value = "";
@@ -1889,31 +1910,29 @@
 
   function renderPickPanel() {
     pickPanel.innerHTML = "";
-    const available = savedPlayers.filter(
-      (p) => !todayPlayers.some((t) => t.toLowerCase() === p.toLowerCase())
-    );
-    if (available.length === 0) {
+    if (savedPlayers.length === 0) {
       const note = document.createElement("div");
       note.className = "empty-note";
-      note.textContent = savedPlayers.length === 0
-        ? "No saved players yet. Add some in \"Manage saved names\"."
-        : "All saved players are already in today's list.";
+      note.textContent = "No saved players yet. Add some in \"Manage saved names\".";
       pickPanel.appendChild(note);
       return;
     }
-    available.forEach((name) => {
-      const row = document.createElement("div");
-      row.className = "saved-row";
-      const span = document.createElement("span");
-      span.textContent = name;
+    const list = document.createElement("div");
+    list.className = "pick-chip-list";
+    savedPlayers.forEach((name) => {
+      const selected = todayPlayers.some((t) => t.toLowerCase() === name.toLowerCase());
       const btn = document.createElement("button");
-      btn.className = "small-btn add";
-      btn.textContent = "Add";
-      btn.addEventListener("click", () => addTodayPlayer(name));
-      row.appendChild(span);
-      row.appendChild(btn);
-      pickPanel.appendChild(row);
+      btn.type = "button";
+      btn.className = "pick-chip" + (selected ? " selected" : "");
+      btn.textContent = name;
+      btn.setAttribute("aria-pressed", String(selected));
+      btn.addEventListener("click", () => {
+        if (selected) removeTodayPlayer(name);
+        else addTodayPlayer(name);
+      });
+      list.appendChild(btn);
     });
+    pickPanel.appendChild(list);
   }
 
   function renderManagePanel() {
