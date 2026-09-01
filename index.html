@@ -1240,7 +1240,7 @@
         <div class="dropdown-panel" id="pickPanel"></div>
       </div>
 
-      <div class="dropdown-row">
+      <div class="dropdown-row" id="setupDropdownRow">
         <div class="dropdown" id="manageDropdown">
           <button class="dropdown-toggle" data-target="manageDropdown">
             Manage saved names <span class="arrow">▾</span>
@@ -3675,6 +3675,21 @@
   syncFormatButtons();
   syncWinByTwoButtons();
   loadSharedSessionFromHash();
+
+  const setupDropdownRow = document.getElementById("setupDropdownRow");
+  function equalizeDropdownToggleHeights(rowEl) {
+    const buttons = rowEl.querySelectorAll(".dropdown-toggle");
+    buttons.forEach((b) => { b.style.minHeight = ""; });
+    let max = 0;
+    buttons.forEach((b) => { max = Math.max(max, b.offsetHeight); });
+    buttons.forEach((b) => { b.style.minHeight = max + "px"; });
+  }
+  let equalizeResizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(equalizeResizeTimer);
+    equalizeResizeTimer = setTimeout(() => equalizeDropdownToggleHeights(setupDropdownRow), 150);
+  });
+  equalizeDropdownToggleHeights(setupDropdownRow);
 
   function isRunningStandalone() {
     return window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
