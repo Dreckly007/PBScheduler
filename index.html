@@ -504,10 +504,10 @@
     margin-top: 4px;
     text-align: center;
   }
-  .hours-mins-row { display: flex; align-items: center; gap: 6px; }
-  .hours-mins-row .number-stepper { flex: 1; min-width: 0; }
-  .hours-mins-row .hours-stepper { flex: 0.7; }
-  .hours-mins-row .minutes-stepper { flex: 1.3; }
+  .hours-mins-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .hours-mins-row .number-stepper { flex: 0 0 auto; min-width: 0; }
+  .hours-mins-row .hours-stepper .stepper-input-wrap { width: 56px; }
+  .hours-mins-row .minutes-stepper .stepper-input-wrap { width: 84px; }
   .hours-mins-row .hint { margin-top: 0; white-space: nowrap; }
   .number-stepper-sm { gap: 4px; }
   .number-stepper-sm .stepper-btn { width: 28px; font-size: 1rem; }
