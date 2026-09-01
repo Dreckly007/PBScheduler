@@ -851,6 +851,7 @@
     margin-bottom: 12px;
   }
   .team-box {
+    position: relative;
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto;
@@ -860,6 +861,7 @@
     overflow: hidden;
   }
   .team-cell {
+    position: relative;
     background: var(--dark-cell);
     color: var(--on-accent);
     font-weight: 700;
@@ -867,6 +869,50 @@
     padding: 14px 10px;
     font-size: 0.98rem;
   }
+  .team-cell:nth-child(odd) { padding-right: calc(30% + 6px); }
+  .team-cell:nth-child(even) { padding-left: calc(30% + 6px); }
+  .team-cell:nth-child(odd)::after {
+    content: "";
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: 30%;
+    background: rgba(255, 255, 255, 0.16);
+    border-left: 2px solid rgba(255, 255, 255, 0.55);
+  }
+  .team-cell:nth-child(even)::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 30%;
+    background: rgba(255, 255, 255, 0.16);
+    border-right: 2px solid rgba(255, 255, 255, 0.55);
+  }
+  .net-divider {
+    position: absolute;
+    top: 0; bottom: 0; left: 50%;
+    width: 9px;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.32);
+    background-image:
+      repeating-linear-gradient(45deg, rgba(255, 255, 255, .9) 0 1.4px, transparent 1.4px 6px),
+      repeating-linear-gradient(-45deg, rgba(255, 255, 255, .9) 0 1.4px, transparent 1.4px 6px);
+    z-index: 3;
+    pointer-events: none;
+  }
+  .net-divider::before,
+  .net-divider::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid rgba(0, 0, 0, .3);
+  }
+  .net-divider::before { top: -6px; }
+  .net-divider::after { bottom: -6px; }
   .score-row {
     display: grid;
     grid-template-columns: minmax(40px, 1fr) minmax(178px, auto) minmax(40px, 1fr);
@@ -3124,6 +3170,9 @@
         cell.addEventListener("click", () => handleCourtTap(name, cell));
         teamBox.appendChild(cell);
       });
+      const netDivider = document.createElement("div");
+      netDivider.className = "net-divider";
+      teamBox.appendChild(netDivider);
       card.appendChild(teamBox);
 
       const scoreRow = document.createElement("div");
