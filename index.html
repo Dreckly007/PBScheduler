@@ -261,16 +261,21 @@
     width: 56px;
     flex-shrink: 0;
   }
+  .brand-text-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
   .brand-wordmark {
     display: block;
     height: 64px;
     width: auto;
   }
   .h1-subtitle {
-    text-align: center;
+    text-align: left;
     color: var(--muted);
     font-size: 0.9rem;
-    margin: 0 0 28px;
+    margin: 0 0 28px 3px;
   }
   .club-logo {
     display: block;
@@ -1295,21 +1300,23 @@
           <path d="M109 86 V102"/>
         </g>
       </svg>
-      <svg class="brand-wordmark" viewBox="210 30 300 160" role="img" aria-label="Up Next">
-        <g fill="none" stroke="var(--green)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M218 40 V71 A25 25 0 0 0 268 71 V40"/>
-          <circle cx="316" cy="68" r="30"/>
-          <path d="M286 40 V112"/>
-          <path d="M218 180 V149 A25 25 0 0 1 268 149 V180"/>
-          <path d="M339 178 A30 30 0 1 1 354 152 H294"/>
-          <path d="M378 124 L428 180"/>
-          <path d="M428 124 L378 180"/>
-          <path d="M452 126 H500"/>
-          <path d="M476 94 V180"/>
-        </g>
-      </svg>
+      <div class="brand-text-col">
+        <svg class="brand-wordmark" viewBox="210 30 300 160" role="img" aria-label="Up Next">
+          <g fill="none" stroke="var(--green)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M218 40 V71 A25 25 0 0 0 268 71 V40"/>
+            <circle cx="316" cy="68" r="30"/>
+            <path d="M286 40 V112"/>
+            <path d="M218 180 V149 A25 25 0 0 1 268 149 V180"/>
+            <path d="M339 178 A30 30 0 1 1 354 152 H294"/>
+            <path d="M378 124 L428 180"/>
+            <path d="M428 124 L378 180"/>
+            <path d="M452 126 H500"/>
+            <path d="M476 94 V180"/>
+          </g>
+        </svg>
+        <div class="h1-subtitle">Scheduler</div>
+      </div>
     </div>
-    <div class="h1-subtitle">Scheduler</div>
     <img id="clubLogoImg" class="club-logo" alt="Club logo" style="display:none;" />
 
     <div class="install-tip no-print" id="installTip" style="display:none;">
