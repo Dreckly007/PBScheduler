@@ -441,6 +441,7 @@
   .number-stepper {
     display: flex;
     align-items: stretch;
+    justify-content: center;
     gap: 6px;
   }
   .number-stepper input[type="number"] {
@@ -480,6 +481,7 @@
     font-size: 0.82rem;
     color: var(--muted);
     margin-top: 4px;
+    text-align: center;
   }
   .hours-mins-row { display: flex; align-items: center; gap: 6px; }
   .hours-mins-row .number-stepper { flex: 1; min-width: 0; }
@@ -1291,7 +1293,7 @@
           </div>
         </div>
         <div class="or-divider">OR</div>
-        <div class="field">
+        <div class="field field-wide-mobile">
           <label for="gameLengthInput">Game length</label>
           <div class="number-stepper">
             <button type="button" class="stepper-btn" data-target="gameLengthInput" data-step="-1" aria-label="Decrease game length">−</button>
