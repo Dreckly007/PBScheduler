@@ -1014,7 +1014,7 @@
   .panel-collapsed { display: none; }
   #panelToggleRow {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     margin-top: 16px;
   }
@@ -1049,25 +1049,6 @@
   .schedule-table .vs { text-align: center; color: var(--muted); font-size: 0.72rem; margin: 2px 0; }
   .schedule-table .score { text-align: center; color: var(--green-dark); font-weight: 700; font-size: 0.82rem; margin: 2px 0; }
   .schedule-table .resting-cell { color: var(--green-dark); font-size: 0.8rem; }
-
-  .games-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    padding: 16px;
-  }
-  .game-pill {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid var(--green-pale-border);
-    border-radius: 10px;
-    padding: 8px 12px;
-    font-size: 0.85rem;
-    color: var(--text);
-  }
-  .game-pill .name { font-weight: 700; }
-  .game-pill .count { background: var(--green); color: var(--on-accent); border-radius: 999px; padding: 2px 10px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
 
   .swap-mode .team-cell, .swap-mode .resting-pill,
   .remove-mode .team-cell, .remove-mode .resting-pill { cursor: pointer; }
@@ -1133,7 +1114,6 @@
     .config-grid { grid-template-columns: 1fr 1fr; }
     .config-grid .or-divider { grid-column: 1 / -1; }
     .config-grid .field-wide-mobile { grid-column: 1 / -1; }
-    .games-grid { grid-template-columns: 1fr; }
     .paired-grid { grid-template-columns: 1fr; }
     .dropdown-row .dropdown-toggle { font-size: 0.78rem; padding: 12px 8px; }
     .dropdown-row .dropdown-toggle .arrow { flex-shrink: 0; margin-left: 4px; }
@@ -1570,9 +1550,6 @@
         <div class="dropdown">
           <button class="dropdown-toggle" id="toggleLeaderboardBtn" data-panel="leaderboardPanel" data-label="Leaderboard">View Leaderboard</button>
         </div>
-        <div class="dropdown">
-          <button class="dropdown-toggle" id="toggleGamesPlayedBtn" data-panel="gamesPlayedPanel" data-label="Games Played">View Games Played</button>
-        </div>
       </div>
 
       <div class="panel panel-collapsed" id="fullSchedulePanel">
@@ -1590,11 +1567,6 @@
         <div class="table-scroll">
           <table class="schedule-table" id="leaderboardTable"></table>
         </div>
-      </div>
-
-      <div class="panel panel-collapsed" id="gamesPlayedPanel">
-        <div class="panel-header"><span>Games Played</span></div>
-        <div class="games-grid" id="gamesGrid"></div>
       </div>
     </div>
 
@@ -1826,7 +1798,6 @@
   const fullScheduleMeta = document.getElementById("fullScheduleMeta");
   const fullScheduleTable = document.getElementById("fullScheduleTable");
   const leaderboardTable = document.getElementById("leaderboardTable");
-  const gamesGrid = document.getElementById("gamesGrid");
 
   courtsInput.value = config.courts;
   gamesToPlayInput.value = config.gamesToPlay;
@@ -3275,10 +3246,13 @@
   function computeLeaderboardStats(session) {
     const stats = {};
     getAllPlayersEver(session).forEach((p) => {
-      stats[p] = { played: 0, wins: 0, pointsFor: 0, pointsAgainst: 0 };
+      stats[p] = { played: 0, scheduled: 0, wins: 0, pointsFor: 0, pointsAgainst: 0 };
     });
     session.rounds.forEach((round) => {
       round.courts.forEach((court) => {
+        [...court.teamA, ...court.teamB].forEach((p) => {
+          stats[p].scheduled += 1;
+        });
         if (court.scoreA === "" || court.scoreB === "") return;
         const scoreA = parseInt(court.scoreA, 10);
         const scoreB = parseInt(court.scoreB, 10);
@@ -3311,12 +3285,12 @@
       if (diffB !== diffA) return diffB - diffA;
       return a.localeCompare(b);
     });
-    let html = "<thead><tr><th>#</th><th>Player</th><th>Won</th><th>Played</th><th>+/-</th></tr></thead><tbody>";
+    let html = "<thead><tr><th>#</th><th>Player</th><th>Won</th><th>Played</th><th>Scheduled</th><th>+/-</th></tr></thead><tbody>";
     names.forEach((name, i) => {
       const st = stats[name];
       const diff = st.pointsFor - st.pointsAgainst;
       const diffText = diff > 0 ? `+${diff}` : String(diff);
-      html += `<tr><td>${i + 1}</td><td>${name}</td><td>${st.wins}</td><td>${st.played}</td><td>${diffText}</td></tr>`;
+      html += `<tr><td>${i + 1}</td><td>${name}</td><td>${st.wins}</td><td>${st.played}</td><td>${st.scheduled}</td><td>${diffText}</td></tr>`;
     });
     html += "</tbody>";
     return html;
@@ -3326,38 +3300,11 @@
     leaderboardTable.innerHTML = buildLeaderboardTableHtml(currentSession);
   }
 
-  function renderGamesPlayed() {
-    const s = currentSession;
-    const gamesCount = {};
-    getAllPlayersEver(s).forEach((p) => (gamesCount[p] = 0));
-    s.rounds.forEach((round) => {
-      round.courts.forEach((court) => {
-        [...court.teamA, ...court.teamB].forEach((p) => (gamesCount[p] += 1));
-      });
-    });
-    const sortedNames = getAllPlayersEver(s).sort((a, b) => a.localeCompare(b));
-    gamesGrid.innerHTML = "";
-    sortedNames.forEach((name) => {
-      const pill = document.createElement("div");
-      pill.className = "game-pill";
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "name";
-      nameSpan.textContent = name;
-      const count = document.createElement("span");
-      count.className = "count";
-      count.textContent = `${gamesCount[name]} games`;
-      pill.appendChild(nameSpan);
-      pill.appendChild(count);
-      gamesGrid.appendChild(pill);
-    });
-  }
-
   function renderAll() {
     renderInfoBar();
     renderRound();
     renderFullSchedule();
     renderLeaderboard();
-    renderGamesPlayed();
     updateRosterPanelState();
   }
 
