@@ -915,12 +915,20 @@
   .net-divider::after { bottom: -6px; }
   .score-row {
     display: grid;
-    grid-template-columns: minmax(40px, 1fr) minmax(178px, auto) minmax(40px, 1fr);
+    grid-template-columns: minmax(62px, 1fr) minmax(150px, auto) minmax(62px, 1fr);
     align-items: center;
     gap: 6px;
     padding-top: 12px;
     border-top: 1px solid #eee;
     margin-top: 12px;
+  }
+  .score-row .label-left,
+  .score-row .label-right {
+    overflow: hidden;
+    overflow-wrap: break-word;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
   }
   .score-row .label-left { text-align: left; color: var(--muted); font-size: 0.85rem; padding-left: 14px; }
   .score-row .label-right { text-align: right; color: var(--muted); font-size: 0.85rem; padding-right: 14px; }
