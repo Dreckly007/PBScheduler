@@ -455,6 +455,27 @@
     -webkit-appearance: none;
     margin: 0;
   }
+  .stepper-input-wrap {
+    position: relative;
+    min-width: 0;
+    display: flex;
+  }
+  .stepper-input-wrap input[type="number"] {
+    width: 100%;
+  }
+  .stepper-input-wrap.has-unit input[type="number"] {
+    padding-right: 32px;
+  }
+  .unit-suffix {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--muted);
+    pointer-events: none;
+  }
   .stepper-btn {
     flex: 0 0 auto;
     width: 36px;
@@ -1302,26 +1323,32 @@
           <label for="gameLengthInput">Game length</label>
           <div class="number-stepper">
             <button type="button" class="stepper-btn" data-target="gameLengthInput" data-step="-1" aria-label="Decrease game length">−</button>
-            <input type="number" id="gameLengthInput" min="0" value="0" />
+            <div class="stepper-input-wrap has-unit">
+              <input type="number" id="gameLengthInput" min="0" value="0" />
+              <span class="unit-suffix">mins</span>
+            </div>
             <button type="button" class="stepper-btn" data-target="gameLengthInput" data-step="1" aria-label="Increase game length">+</button>
           </div>
-          <div class="hint">mins</div>
         </div>
         <div class="field field-wide-mobile">
           <label for="timeAvailableHoursInput">Time available</label>
           <div class="hours-mins-row">
             <div class="number-stepper number-stepper-sm">
               <button type="button" class="stepper-btn" data-target="timeAvailableHoursInput" data-step="-1" aria-label="Decrease hours available">−</button>
-              <input type="number" id="timeAvailableHoursInput" min="0" value="0" />
+              <div class="stepper-input-wrap has-unit">
+                <input type="number" id="timeAvailableHoursInput" min="0" value="0" />
+                <span class="unit-suffix">hrs</span>
+              </div>
               <button type="button" class="stepper-btn" data-target="timeAvailableHoursInput" data-step="1" aria-label="Increase hours available">+</button>
             </div>
-            <span class="hint">hrs</span>
             <div class="number-stepper number-stepper-sm">
               <button type="button" class="stepper-btn" data-target="timeAvailableMinutesInput" data-step="-1" aria-label="Decrease minutes available">−</button>
-              <input type="number" id="timeAvailableMinutesInput" min="0" max="59" value="0" />
+              <div class="stepper-input-wrap has-unit">
+                <input type="number" id="timeAvailableMinutesInput" min="0" max="59" value="0" />
+                <span class="unit-suffix">mins</span>
+              </div>
               <button type="button" class="stepper-btn" data-target="timeAvailableMinutesInput" data-step="1" aria-label="Increase minutes available">+</button>
             </div>
-            <span class="hint">mins</span>
           </div>
         </div>
       </div>
