@@ -1301,38 +1301,40 @@
     </div>
 
     <div id="setupView">
-      <div class="dropdown" id="themeDropdown">
-        <button class="dropdown-toggle" data-target="themeDropdown">
-          <span class="dropdown-toggle-label">
-            <span class="theme-toggle-dot" id="themeToggleDot"></span>
-            Colour theme: <span id="themeToggleName">Cornish Gold</span>
-          </span>
-          <span class="arrow">▾</span>
-        </button>
-        <div class="dropdown-panel">
-          <div class="theme-swatches" id="themeSwatches"></div>
-          <div class="custom-color-row" id="customColorRow" style="display:none;">
-            <input type="color" id="customColorInput" value="#b8860b" />
-            <span class="hint">Pick your own colour</span>
+      <div class="dropdown-row" id="brandingDropdownRow">
+        <div class="dropdown" id="themeDropdown">
+          <button class="dropdown-toggle" data-target="themeDropdown">
+            <span class="dropdown-toggle-label">
+              <span class="theme-toggle-dot" id="themeToggleDot"></span>
+              Colour theme: <span id="themeToggleName">Cornish Gold</span>
+            </span>
+            <span class="arrow">▾</span>
+          </button>
+          <div class="dropdown-panel">
+            <div class="theme-swatches" id="themeSwatches"></div>
+            <div class="custom-color-row" id="customColorRow" style="display:none;">
+              <input type="color" id="customColorInput" value="#b8860b" />
+              <span class="hint">Pick your own colour</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="dropdown no-print" id="logoDropdown">
-        <button class="dropdown-toggle" data-target="logoDropdown">
-          Club logo <span class="arrow">▾</span>
-        </button>
-        <div class="dropdown-panel">
-          <div class="logo-upload-row">
-            <div class="logo-preview" id="logoPreviewWrap" style="display:none;">
-              <img id="logoPreviewImg" alt="Club logo preview" />
+        <div class="dropdown no-print" id="logoDropdown">
+          <button class="dropdown-toggle" data-target="logoDropdown">
+            Club logo <span class="arrow">▾</span>
+          </button>
+          <div class="dropdown-panel">
+            <div class="logo-upload-row">
+              <div class="logo-preview" id="logoPreviewWrap" style="display:none;">
+                <img id="logoPreviewImg" alt="Club logo preview" />
+              </div>
+              <input type="file" id="logoFileInput" accept="image/*" style="display:none;" />
+              <button class="small-btn add" id="logoUploadBtn">Upload logo</button>
+              <button class="small-btn remove" id="logoRemoveBtn" style="display:none;">Remove logo</button>
             </div>
-            <input type="file" id="logoFileInput" accept="image/*" style="display:none;" />
-            <button class="small-btn add" id="logoUploadBtn">Upload logo</button>
-            <button class="small-btn remove" id="logoRemoveBtn" style="display:none;">Remove logo</button>
-          </div>
-          <div class="hint">
-            Shows at the top of the app and on printed sheets. Also becomes the icon for anyone installing the app from now on — if you've already added it to a home screen, remove and re-add it there to pick up a new logo.
+            <div class="hint">
+              Shows at the top of the app and on printed sheets. Also becomes the icon for anyone installing the app from now on — if you've already added it to a home screen, remove and re-add it there to pick up a new logo.
+            </div>
           </div>
         </div>
       </div>
@@ -3765,6 +3767,7 @@
   loadSharedSessionFromHash();
 
   const setupDropdownRow = document.getElementById("setupDropdownRow");
+  const brandingDropdownRow = document.getElementById("brandingDropdownRow");
   function equalizeDropdownToggleHeights(rowEl) {
     const buttons = rowEl.querySelectorAll(".dropdown-toggle");
     buttons.forEach((b) => { b.style.minHeight = ""; });
@@ -3775,9 +3778,13 @@
   let equalizeResizeTimer = null;
   window.addEventListener("resize", () => {
     clearTimeout(equalizeResizeTimer);
-    equalizeResizeTimer = setTimeout(() => equalizeDropdownToggleHeights(setupDropdownRow), 150);
+    equalizeResizeTimer = setTimeout(() => {
+      equalizeDropdownToggleHeights(setupDropdownRow);
+      equalizeDropdownToggleHeights(brandingDropdownRow);
+    }, 150);
   });
   equalizeDropdownToggleHeights(setupDropdownRow);
+  equalizeDropdownToggleHeights(brandingDropdownRow);
 
   function loadImageFromDataUrl(dataUrl) {
     return new Promise((resolve, reject) => {
