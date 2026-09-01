@@ -915,25 +915,23 @@
   .net-divider::after { bottom: -6px; }
   .score-row {
     display: grid;
-    grid-template-columns: minmax(62px, 1fr) minmax(150px, auto) minmax(62px, 1fr);
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
     padding-top: 12px;
     border-top: 1px solid #eee;
     margin-top: 12px;
   }
-  .score-row .label-left,
-  .score-row .label-right {
-    overflow: hidden;
-    overflow-wrap: break-word;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
+  .score-row .score-stepper { justify-self: center; }
+  .score-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
   }
-  .score-row .label-left { text-align: left; color: var(--muted); font-size: 0.85rem; padding-left: 14px; }
-  .score-row .label-right { text-align: right; color: var(--muted); font-size: 0.85rem; padding-right: 14px; }
-  .score-inputs { display: flex; align-items: center; gap: 8px; justify-content: center; min-width: 0; }
-  .score-inputs input[type="number"] {
+  .score-stepper input[type="number"] {
     flex: 1 1 28px;
     min-width: 28px;
     width: auto;
@@ -944,7 +942,6 @@
     border: 1px solid var(--card-border);
     border-radius: 6px;
   }
-  .score-inputs .dash { color: var(--muted); flex-shrink: 0; }
   .score-stepper { min-width: 0; flex-shrink: 1; }
   .score-stepper .stepper-btn { flex-shrink: 0; }
 
@@ -3185,11 +3182,6 @@
 
       const scoreRow = document.createElement("div");
       scoreRow.className = "score-row";
-      const labelLeft = document.createElement("div");
-      labelLeft.className = "label-left";
-      labelLeft.textContent = court.teamA.join(" & ");
-      const inputs = document.createElement("div");
-      inputs.className = "score-inputs";
       const scoreA = document.createElement("input");
       scoreA.type = "number";
       scoreA.min = "0";
@@ -3203,9 +3195,6 @@
         renderFullSchedule();
         renderLeaderboard();
       });
-      const dash = document.createElement("span");
-      dash.className = "dash";
-      dash.textContent = "—";
       const scoreB = document.createElement("input");
       scoreB.type = "number";
       scoreB.min = "0";
@@ -3219,15 +3208,12 @@
         renderFullSchedule();
         renderLeaderboard();
       });
-      inputs.appendChild(buildScoreStepperGroup(scoreA, court.teamA.join(" & "), scoreMax));
-      inputs.appendChild(dash);
-      inputs.appendChild(buildScoreStepperGroup(scoreB, court.teamB.join(" & "), scoreMax));
-      const labelRight = document.createElement("div");
-      labelRight.className = "label-right";
-      labelRight.textContent = court.teamB.join(" & ");
-      scoreRow.appendChild(labelLeft);
-      scoreRow.appendChild(inputs);
-      scoreRow.appendChild(labelRight);
+      const scoreLabel = document.createElement("div");
+      scoreLabel.className = "score-label";
+      scoreLabel.textContent = "Score";
+      scoreRow.appendChild(buildScoreStepperGroup(scoreA, court.teamA.join(" & "), scoreMax));
+      scoreRow.appendChild(scoreLabel);
+      scoreRow.appendChild(buildScoreStepperGroup(scoreB, court.teamB.join(" & "), scoreMax));
       card.appendChild(scoreRow);
 
       courtsContainer.appendChild(card);
